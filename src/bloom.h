@@ -1,9 +1,10 @@
 // Copyright (c) 2012-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_BLOOM_H
-#define BITCOIN_BLOOM_H
+#ifndef TRUTHCOIN_BLOOM_H
+#define TRUTHCOIN_BLOOM_H
 
 #include "serialize.h"
 
@@ -97,4 +98,4 @@ public:
     void UpdateEmptyFull();
 };
 
-#endif // BITCOIN_BLOOM_H
+#endif // TRUTHCOIN_BLOOM_H

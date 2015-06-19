@@ -1,9 +1,10 @@
 // Copyright (c) 2012 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_MRUSET_H
-#define BITCOIN_MRUSET_H
+#ifndef TRUTHCOIN_MRUSET_H
+#define TRUTHCOIN_MRUSET_H
 
 #include <deque>
 #include <set>
@@ -66,4 +67,4 @@ public:
     }
 };
 
-#endif // BITCOIN_MRUSET_H
+#endif // TRUTHCOIN_MRUSET_H

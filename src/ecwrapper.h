@@ -1,9 +1,10 @@
 // Copyright (c) 2009-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_ECWRAPPER_H
-#define BITCOIN_ECWRAPPER_H
+#ifndef TRUTHCOIN_ECWRAPPER_H
+#define TRUTHCOIN_ECWRAPPER_H
 
 #include <cstddef>
 #include <vector>
@@ -37,4 +38,4 @@ public:
     static bool SanityCheck();
 };
 
-#endif // BITCOIN_ECWRAPPER_H
+#endif // TRUTHCOIN_ECWRAPPER_H

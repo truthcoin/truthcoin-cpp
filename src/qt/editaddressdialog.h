@@ -1,9 +1,10 @@
 // Copyright (c) 2011-2013 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_EDITADDRESSDIALOG_H
-#define BITCOIN_QT_EDITADDRESSDIALOG_H
+#ifndef TRUTHCOIN_QT_EDITADDRESSDIALOG_H
+#define TRUTHCOIN_QT_EDITADDRESSDIALOG_H
 
 #include <QDialog>
 
@@ -54,4 +55,4 @@ private:
     QString address;
 };
 
-#endif // BITCOIN_QT_EDITADDRESSDIALOG_H
+#endif // TRUTHCOIN_QT_EDITADDRESSDIALOG_H

@@ -1,79 +1,79 @@
-bin_PROGRAMS += qt/bitcoin-qt
-EXTRA_LIBRARIES += qt/libbitcoinqt.a
+bin_PROGRAMS += qt/truthcoin-qt
+EXTRA_LIBRARIES += qt/libtruthcoinqt.a
 
-# bitcoin qt core #
+# truthcoin qt core #
 QT_TS = \
-  qt/locale/bitcoin_ach.ts \
-  qt/locale/bitcoin_af_ZA.ts \
-  qt/locale/bitcoin_ar.ts \
-  qt/locale/bitcoin_be_BY.ts \
-  qt/locale/bitcoin_bg.ts \
-  qt/locale/bitcoin_bs.ts \
-  qt/locale/bitcoin_ca_ES.ts \
-  qt/locale/bitcoin_ca.ts \
-  qt/locale/bitcoin_ca@valencia.ts \
-  qt/locale/bitcoin_cmn.ts \
-  qt/locale/bitcoin_cs.ts \
-  qt/locale/bitcoin_cy.ts \
-  qt/locale/bitcoin_da.ts \
-  qt/locale/bitcoin_de.ts \
-  qt/locale/bitcoin_el_GR.ts \
-  qt/locale/bitcoin_en.ts \
-  qt/locale/bitcoin_eo.ts \
-  qt/locale/bitcoin_es_CL.ts \
-  qt/locale/bitcoin_es_DO.ts \
-  qt/locale/bitcoin_es_MX.ts \
-  qt/locale/bitcoin_es.ts \
-  qt/locale/bitcoin_es_UY.ts \
-  qt/locale/bitcoin_et.ts \
-  qt/locale/bitcoin_eu_ES.ts \
-  qt/locale/bitcoin_fa_IR.ts \
-  qt/locale/bitcoin_fa.ts \
-  qt/locale/bitcoin_fi.ts \
-  qt/locale/bitcoin_fr_CA.ts \
-  qt/locale/bitcoin_fr.ts \
-  qt/locale/bitcoin_gl.ts \
-  qt/locale/bitcoin_gu_IN.ts \
-  qt/locale/bitcoin_he.ts \
-  qt/locale/bitcoin_hi_IN.ts \
-  qt/locale/bitcoin_hr.ts \
-  qt/locale/bitcoin_hu.ts \
-  qt/locale/bitcoin_id_ID.ts \
-  qt/locale/bitcoin_it.ts \
-  qt/locale/bitcoin_ja.ts \
-  qt/locale/bitcoin_ka.ts \
-  qt/locale/bitcoin_kk_KZ.ts \
-  qt/locale/bitcoin_ko_KR.ts \
-  qt/locale/bitcoin_ky.ts \
-  qt/locale/bitcoin_la.ts \
-  qt/locale/bitcoin_lt.ts \
-  qt/locale/bitcoin_lv_LV.ts \
-  qt/locale/bitcoin_mn.ts \
-  qt/locale/bitcoin_ms_MY.ts \
-  qt/locale/bitcoin_nb.ts \
-  qt/locale/bitcoin_nl.ts \
-  qt/locale/bitcoin_pam.ts \
-  qt/locale/bitcoin_pl.ts \
-  qt/locale/bitcoin_pt_BR.ts \
-  qt/locale/bitcoin_pt_PT.ts \
-  qt/locale/bitcoin_ro_RO.ts \
-  qt/locale/bitcoin_ru.ts \
-  qt/locale/bitcoin_sah.ts \
-  qt/locale/bitcoin_sk.ts \
-  qt/locale/bitcoin_sl_SI.ts \
-  qt/locale/bitcoin_sq.ts \
-  qt/locale/bitcoin_sr.ts \
-  qt/locale/bitcoin_sv.ts \
-  qt/locale/bitcoin_th_TH.ts \
-  qt/locale/bitcoin_tr.ts \
-  qt/locale/bitcoin_uk.ts \
-  qt/locale/bitcoin_ur_PK.ts \
-  qt/locale/bitcoin_uz@Cyrl.ts \
-  qt/locale/bitcoin_vi.ts \
-  qt/locale/bitcoin_vi_VN.ts \
-  qt/locale/bitcoin_zh_CN.ts \
-  qt/locale/bitcoin_zh_HK.ts \
-  qt/locale/bitcoin_zh_TW.ts
+  qt/locale/truthcoin_ach.ts \
+  qt/locale/truthcoin_af_ZA.ts \
+  qt/locale/truthcoin_ar.ts \
+  qt/locale/truthcoin_be_BY.ts \
+  qt/locale/truthcoin_bg.ts \
+  qt/locale/truthcoin_bs.ts \
+  qt/locale/truthcoin_ca_ES.ts \
+  qt/locale/truthcoin_ca.ts \
+  qt/locale/truthcoin_ca@valencia.ts \
+  qt/locale/truthcoin_cmn.ts \
+  qt/locale/truthcoin_cs.ts \
+  qt/locale/truthcoin_cy.ts \
+  qt/locale/truthcoin_da.ts \
+  qt/locale/truthcoin_de.ts \
+  qt/locale/truthcoin_el_GR.ts \
+  qt/locale/truthcoin_en.ts \
+  qt/locale/truthcoin_eo.ts \
+  qt/locale/truthcoin_es_CL.ts \
+  qt/locale/truthcoin_es_DO.ts \
+  qt/locale/truthcoin_es_MX.ts \
+  qt/locale/truthcoin_es.ts \
+  qt/locale/truthcoin_es_UY.ts \
+  qt/locale/truthcoin_et.ts \
+  qt/locale/truthcoin_eu_ES.ts \
+  qt/locale/truthcoin_fa_IR.ts \
+  qt/locale/truthcoin_fa.ts \
+  qt/locale/truthcoin_fi.ts \
+  qt/locale/truthcoin_fr_CA.ts \
+  qt/locale/truthcoin_fr.ts \
+  qt/locale/truthcoin_gl.ts \
+  qt/locale/truthcoin_gu_IN.ts \
+  qt/locale/truthcoin_he.ts \
+  qt/locale/truthcoin_hi_IN.ts \
+  qt/locale/truthcoin_hr.ts \
+  qt/locale/truthcoin_hu.ts \
+  qt/locale/truthcoin_id_ID.ts \
+  qt/locale/truthcoin_it.ts \
+  qt/locale/truthcoin_ja.ts \
+  qt/locale/truthcoin_ka.ts \
+  qt/locale/truthcoin_kk_KZ.ts \
+  qt/locale/truthcoin_ko_KR.ts \
+  qt/locale/truthcoin_ky.ts \
+  qt/locale/truthcoin_la.ts \
+  qt/locale/truthcoin_lt.ts \
+  qt/locale/truthcoin_lv_LV.ts \
+  qt/locale/truthcoin_mn.ts \
+  qt/locale/truthcoin_ms_MY.ts \
+  qt/locale/truthcoin_nb.ts \
+  qt/locale/truthcoin_nl.ts \
+  qt/locale/truthcoin_pam.ts \
+  qt/locale/truthcoin_pl.ts \
+  qt/locale/truthcoin_pt_BR.ts \
+  qt/locale/truthcoin_pt_PT.ts \
+  qt/locale/truthcoin_ro_RO.ts \
+  qt/locale/truthcoin_ru.ts \
+  qt/locale/truthcoin_sah.ts \
+  qt/locale/truthcoin_sk.ts \
+  qt/locale/truthcoin_sl_SI.ts \
+  qt/locale/truthcoin_sq.ts \
+  qt/locale/truthcoin_sr.ts \
+  qt/locale/truthcoin_sv.ts \
+  qt/locale/truthcoin_th_TH.ts \
+  qt/locale/truthcoin_tr.ts \
+  qt/locale/truthcoin_uk.ts \
+  qt/locale/truthcoin_ur_PK.ts \
+  qt/locale/truthcoin_uz@Cyrl.ts \
+  qt/locale/truthcoin_vi.ts \
+  qt/locale/truthcoin_vi_VN.ts \
+  qt/locale/truthcoin_zh_CN.ts \
+  qt/locale/truthcoin_zh_HK.ts \
+  qt/locale/truthcoin_zh_TW.ts
 
 QT_FORMS_UI = \
   qt/forms/addressbookpage.ui \
@@ -97,10 +97,10 @@ QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
   qt/moc_addresstablemodel.cpp \
   qt/moc_askpassphrasedialog.cpp \
-  qt/moc_bitcoinaddressvalidator.cpp \
-  qt/moc_bitcoinamountfield.cpp \
-  qt/moc_bitcoingui.cpp \
-  qt/moc_bitcoinunits.cpp \
+  qt/moc_truthcoinaddressvalidator.cpp \
+  qt/moc_truthcoinamountfield.cpp \
+  qt/moc_truthcoingui.cpp \
+  qt/moc_truthcoinunits.cpp \
   qt/moc_clientmodel.cpp \
   qt/moc_coincontroldialog.cpp \
   qt/moc_coincontroltreewidget.cpp \
@@ -138,34 +138,34 @@ QT_MOC_CPP = \
   qt/moc_walletmodel.cpp \
   qt/moc_walletview.cpp
 
-BITCOIN_MM = \
+TRUTHCOIN_MM = \
   qt/macdockiconhandler.mm \
   qt/macnotificationhandler.mm
 
 QT_MOC = \
-  qt/bitcoin.moc \
-  qt/bitcoinamountfield.moc \
+  qt/truthcoin.moc \
+  qt/truthcoinamountfield.moc \
   qt/intro.moc \
   qt/overviewpage.moc \
   qt/rpcconsole.moc
 
-QT_QRC_CPP = qt/qrc_bitcoin.cpp
-QT_QRC = qt/bitcoin.qrc
-QT_QRC_LOCALE_CPP = qt/qrc_bitcoin_locale.cpp
-QT_QRC_LOCALE = qt/bitcoin_locale.qrc
+QT_QRC_CPP = qt/qrc_truthcoin.cpp
+QT_QRC = qt/truthcoin.qrc
+QT_QRC_LOCALE_CPP = qt/qrc_truthcoin_locale.cpp
+QT_QRC_LOCALE = qt/truthcoin_locale.qrc
 
 PROTOBUF_CC = qt/paymentrequest.pb.cc
 PROTOBUF_H = qt/paymentrequest.pb.h
 PROTOBUF_PROTO = qt/paymentrequest.proto
 
-BITCOIN_QT_H = \
+TRUTHCOIN_QT_H = \
   qt/addressbookpage.h \
   qt/addresstablemodel.h \
   qt/askpassphrasedialog.h \
-  qt/bitcoinaddressvalidator.h \
-  qt/bitcoinamountfield.h \
-  qt/bitcoingui.h \
-  qt/bitcoinunits.h \
+  qt/truthcoinaddressvalidator.h \
+  qt/truthcoinamountfield.h \
+  qt/truthcoingui.h \
+  qt/truthcoinunits.h \
   qt/clientmodel.h \
   qt/coincontroldialog.h \
   qt/coincontroltreewidget.h \
@@ -215,8 +215,8 @@ RES_ICONS = \
   qt/res/icons/address-book.png \
   qt/res/icons/about.png \
   qt/res/icons/about_qt.png \
-  qt/res/icons/bitcoin.ico \
-  qt/res/icons/bitcoin.png \
+  qt/res/icons/truthcoin.ico \
+  qt/res/icons/truthcoin.png \
   qt/res/icons/clock1.png \
   qt/res/icons/clock2.png \
   qt/res/icons/clock3.png \
@@ -258,11 +258,11 @@ RES_ICONS = \
   qt/res/icons/tx_mined.png \
   qt/res/icons/verify.png
 
-BITCOIN_QT_CPP = \
-  qt/bitcoinaddressvalidator.cpp \
-  qt/bitcoinamountfield.cpp \
-  qt/bitcoingui.cpp \
-  qt/bitcoinunits.cpp \
+TRUTHCOIN_QT_CPP = \
+  qt/truthcoinaddressvalidator.cpp \
+  qt/truthcoinamountfield.cpp \
+  qt/truthcoingui.cpp \
+  qt/truthcoinunits.cpp \
   qt/clientmodel.cpp \
   qt/csvmodelwriter.cpp \
   qt/guiutil.cpp \
@@ -281,11 +281,11 @@ BITCOIN_QT_CPP = \
   qt/utilitydialog.cpp
 
 if TARGET_WINDOWS
-BITCOIN_QT_CPP += qt/winshutdownmonitor.cpp
+TRUTHCOIN_QT_CPP += qt/winshutdownmonitor.cpp
 endif
 
 if ENABLE_WALLET
-BITCOIN_QT_CPP += \
+TRUTHCOIN_QT_CPP += \
   qt/addressbookpage.cpp \
   qt/addresstablemodel.cpp \
   qt/askpassphrasedialog.cpp \
@@ -318,18 +318,18 @@ RES_IMAGES =
 
 RES_MOVIES = $(wildcard qt/res/movies/spinner-*.png)
 
-BITCOIN_RC = qt/res/bitcoin-qt-res.rc
+TRUTHCOIN_RC = qt/res/truthcoin-qt-res.rc
 
-BITCOIN_QT_INCLUDES = -I$(builddir)/qt -I$(srcdir)/qt -I$(srcdir)/qt/forms \
+TRUTHCOIN_QT_INCLUDES = -I$(builddir)/qt -I$(srcdir)/qt -I$(srcdir)/qt/forms \
   -I$(builddir)/qt/forms
 
-qt_libbitcoinqt_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
+qt_libtruthcoinqt_a_CPPFLAGS = $(TRUTHCOIN_INCLUDES) $(TRUTHCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(QT_DBUS_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
 
-qt_libbitcoinqt_a_SOURCES = $(BITCOIN_QT_CPP) $(BITCOIN_QT_H) $(QT_FORMS_UI) \
+qt_libtruthcoinqt_a_SOURCES = $(TRUTHCOIN_QT_CPP) $(TRUTHCOIN_QT_H) $(QT_FORMS_UI) \
   $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES)
 
-nodist_qt_libbitcoinqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
+nodist_qt_libtruthcoinqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
   $(PROTOBUF_H) $(QT_QRC_CPP) $(QT_QRC_LOCALE_CPP)
 
 # forms/foo.h -> forms/ui_foo.h
@@ -338,65 +338,65 @@ QT_FORMS_H=$(join $(dir $(QT_FORMS_UI)),$(addprefix ui_, $(notdir $(QT_FORMS_UI:
 # Most files will depend on the forms and moc files as includes. Generate them
 # before anything else.
 $(QT_MOC): $(QT_FORMS_H)
-$(qt_libbitcoinqt_a_OBJECTS) $(qt_bitcoin_qt_OBJECTS) : | $(QT_MOC)
+$(qt_libtruthcoinqt_a_OBJECTS) $(qt_truthcoin_qt_OBJECTS) : | $(QT_MOC)
 
 #Generating these with a half-written protobuf header leads to wacky results.
 #This makes sure it's done.
 $(QT_MOC): $(PROTOBUF_H)
 $(QT_MOC_CPP): $(PROTOBUF_H)
 
-# bitcoin-qt binary #
-qt_bitcoin_qt_CPPFLAGS = $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
+# truthcoin-qt binary #
+qt_truthcoin_qt_CPPFLAGS = $(TRUTHCOIN_INCLUDES) $(TRUTHCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
 
-qt_bitcoin_qt_SOURCES = qt/bitcoin.cpp
+qt_truthcoin_qt_SOURCES = qt/truthcoin.cpp
 if TARGET_DARWIN
-  qt_bitcoin_qt_SOURCES += $(BITCOIN_MM)
+  qt_truthcoin_qt_SOURCES += $(TRUTHCOIN_MM)
 endif
 if TARGET_WINDOWS
-  qt_bitcoin_qt_SOURCES += $(BITCOIN_RC)
+  qt_truthcoin_qt_SOURCES += $(TRUTHCOIN_RC)
 endif
-qt_bitcoin_qt_LDADD = qt/libbitcoinqt.a $(LIBBITCOIN_SERVER)
+qt_truthcoin_qt_LDADD = qt/libtruthcoinqt.a $(LIBTRUTHCOIN_SERVER)
 if ENABLE_WALLET
-qt_bitcoin_qt_LDADD += $(LIBBITCOIN_WALLET)
+qt_truthcoin_qt_LDADD += $(LIBTRUTHCOIN_WALLET)
 endif
-qt_bitcoin_qt_LDADD += $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO) $(LIBBITCOIN_UNIVALUE) $(LIBLEVELDB) $(LIBMEMENV) \
+qt_truthcoin_qt_LDADD += $(LIBTRUTHCOIN_CLI) $(LIBTRUTHCOIN_COMMON) $(LIBTRUTHCOIN_UTIL) $(LIBTRUTHCOIN_CRYPTO) $(LIBTRUTHCOIN_UNIVALUE) $(LIBLEVELDB) $(LIBMEMENV) \
   $(BOOST_LIBS) $(QT_LIBS) $(QT_DBUS_LIBS) $(QR_LIBS) $(PROTOBUF_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(LIBSECP256K1)
-qt_bitcoin_qt_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
-qt_bitcoin_qt_LIBTOOLFLAGS = --tag CXX
+qt_truthcoin_qt_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+qt_truthcoin_qt_LIBTOOLFLAGS = --tag CXX
 
 #locale/foo.ts -> locale/foo.qm
 QT_QM=$(QT_TS:.ts=.qm)
 
 SECONDARY: $(QT_QM)
 
-qt/bitcoinstrings.cpp: $(libbitcoin_server_a_SOURCES) $(libbitcoin_wallet_a_SOURCES)
+qt/truthcoinstrings.cpp: $(libtruthcoin_server_a_SOURCES) $(libtruthcoin_wallet_a_SOURCES)
 	@test -n $(XGETTEXT) || echo "xgettext is required for updating translations"
 	$(AM_V_GEN) cd $(srcdir); XGETTEXT=$(XGETTEXT) ../share/qt/extract_strings_qt.py $^
 
-translate: qt/bitcoinstrings.cpp $(QT_FORMS_UI) $(QT_FORMS_UI) $(BITCOIN_QT_CPP) $(BITCOIN_QT_H) $(BITCOIN_MM)
+translate: qt/truthcoinstrings.cpp $(QT_FORMS_UI) $(QT_FORMS_UI) $(TRUTHCOIN_QT_CPP) $(TRUTHCOIN_QT_H) $(TRUTHCOIN_MM)
 	@test -n $(LUPDATE) || echo "lupdate is required for updating translations"
-	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(LUPDATE) $^ -locations relative -no-obsolete -ts qt/locale/bitcoin_en.ts
+	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(LUPDATE) $^ -locations relative -no-obsolete -ts qt/locale/truthcoin_en.ts
 
 $(QT_QRC_LOCALE_CPP): $(QT_QRC_LOCALE) $(QT_QM)
 	@test -f $(RCC)
 	@test -f $(@D)/$(<F) || cp -f $< $(@D)
-	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name bitcoin_locale $(@D)/$(<F) | \
+	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name truthcoin_locale $(@D)/$(<F) | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 
 $(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES) $(PROTOBUF_H)
 	@test -f $(RCC)
-	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name bitcoin $< | \
+	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name truthcoin $< | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 
-CLEAN_QT = $(nodist_qt_libbitcoinqt_a_SOURCES) $(QT_QM) $(QT_FORMS_H) qt/*.gcda qt/*.gcno
+CLEAN_QT = $(nodist_qt_libtruthcoinqt_a_SOURCES) $(QT_QM) $(QT_FORMS_H) qt/*.gcda qt/*.gcno
 
 CLEANFILES += $(CLEAN_QT)
 
-bitcoin_qt_clean: FORCE
-	rm -f $(CLEAN_QT) $(qt_libbitcoinqt_a_OBJECTS) $(qt_bitcoin_qt_OBJECTS) qt/bitcoin-qt$(EXEEXT) $(LIBBITCOINQT)
+truthcoin_qt_clean: FORCE
+	rm -f $(CLEAN_QT) $(qt_libtruthcoinqt_a_OBJECTS) $(qt_truthcoin_qt_OBJECTS) qt/truthcoin-qt$(EXEEXT) $(LIBTRUTHCOINQT)
 
-bitcoin_qt : qt/bitcoin-qt$(EXEEXT)
+truthcoin_qt : qt/truthcoin-qt$(EXEEXT)
 
 ui_%.h: %.ui
 	@test -f $(UIC)

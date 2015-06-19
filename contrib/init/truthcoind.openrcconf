@@ -1,0 +1,27 @@
+# /etc/conf.d/truthcoind: config file for /etc/init.d/truthcoind
+
+# Config file location
+#TRUTHCOIND_CONFIGFILE="/etc/truthcoin/truthcoin.conf"
+
+# What directory to write pidfile to?  (created and owned by $TRUTHCOIND_USER)
+#TRUTHCOIND_PIDDIR="/var/run/truthcoind"
+
+# What filename to give the pidfile
+#TRUTHCOIND_PIDFILE="${TRUTHCOIND_PIDDIR}/truthcoind.pid"
+
+# Where to write truthcoind data (be mindful that the blockchain is large)
+#TRUTHCOIND_DATADIR="/var/lib/truthcoind"
+
+# User and group to own truthcoind process
+#TRUTHCOIND_USER="truthcoin"
+#TRUTHCOIND_GROUP="truthcoin"
+
+# Path to truthcoind executable
+#TRUTHCOIND_BIN="/usr/bin/truthcoind"
+
+# Nice value to run truthcoind under
+#TRUTHCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+TRUTHCOIND_OPTS="-disablewallet"
+

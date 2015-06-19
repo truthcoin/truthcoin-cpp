@@ -1,9 +1,10 @@
 // Copyright (c) 2011-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_RECEIVECOINSDIALOG_H
-#define BITCOIN_QT_RECEIVECOINSDIALOG_H
+#ifndef TRUTHCOIN_QT_RECEIVECOINSDIALOG_H
+#define TRUTHCOIN_QT_RECEIVECOINSDIALOG_H
 
 #include "guiutil.h"
 
@@ -26,7 +27,7 @@ QT_BEGIN_NAMESPACE
 class QModelIndex;
 QT_END_NAMESPACE
 
-/** Dialog for requesting payment of bitcoins */
+/** Dialog for requesting payment of truthcoins */
 class ReceiveCoinsDialog : public QDialog
 {
     Q_OBJECT
@@ -73,4 +74,4 @@ private slots:
     void copyAmount();
 };
 
-#endif // BITCOIN_QT_RECEIVECOINSDIALOG_H
+#endif // TRUTHCOIN_QT_RECEIVECOINSDIALOG_H

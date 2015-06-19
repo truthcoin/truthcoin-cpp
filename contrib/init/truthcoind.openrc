@@ -1,0 +1,86 @@
+#!/sbin/runscript
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/truthcoin/.truthcoin" ]; then
+	TRUTHCOIND_DEFAULT_DATADIR="/var/lib/truthcoin/.truthcoin"
+else
+	TRUTHCOIND_DEFAULT_DATADIR="/var/lib/truthcoind"
+fi
+
+TRUTHCOIND_CONFIGFILE=${TRUTHCOIND_CONFIGFILE:-/etc/truthcoin/truthcoin.conf}
+TRUTHCOIND_PIDDIR=${TRUTHCOIND_PIDDIR:-/var/run/truthcoind}
+TRUTHCOIND_PIDFILE=${TRUTHCOIND_PIDFILE:-${TRUTHCOIND_PIDDIR}/truthcoind.pid}
+TRUTHCOIND_DATADIR=${TRUTHCOIND_DATADIR:-${TRUTHCOIND_DEFAULT_DATADIR}}
+TRUTHCOIND_USER=${TRUTHCOIND_USER:-truthcoin}
+TRUTHCOIND_GROUP=${TRUTHCOIND_GROUP:-truthcoin}
+TRUTHCOIND_BIN=${TRUTHCOIND_BIN:-/usr/bin/truthcoind}
+
+name="Truthcoin Core Daemon"
+description="Truthcoin crypto-currency p2p network daemon"
+
+command="/usr/bin/truthcoind"
+command_args="-pid=\"${TRUTHCOIND_PIDFILE}\" \
+		-conf=\"${TRUTHCOIND_CONFIGFILE}\" \
+		-datadir=\"${TRUTHCOIND_DATADIR}\" \
+		-daemon \
+		${TRUTHCOIND_OPTS}"
+
+required_files="${TRUTHCOIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${TRUTHCOIND_USER} \
+			-N ${TRUTHCOIND_NICE:-0} -w 2000"
+pidfile="${TRUTHCOIND_PIDFILE}"
+retry=60
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${TRUTHCOIND_USER}:${TRUTHCOIND_GROUP}" \
+	"${TRUTHCOIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${TRUTHCOIND_USER}:${TRUTHCOIND_GROUP}" \
+	"${TRUTHCOIND_PIDDIR}"
+
+	checkpath -f \
+	-o ${TRUTHCOIND_USER}:${TRUTHCOIND_GROUP} \
+	-m 0660 \
+	${TRUTHCOIND_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${TRUTHCOIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run truthcoind."
+		eerror "The setting must appear in ${TRUTHCOIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following"
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is also recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Truthcoin Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

@@ -1,4 +1,4 @@
-The following is a list of assets used in the bitcoin source and their proper attribution.
+The following is a list of assets used in the truthcoin source and their proper attribution.
 
 [Typicons/Stephen Hutchings](http://typicons.com)
 -----------------------
@@ -28,18 +28,18 @@ Jonas Schnelli
 
 ### Info
 * Designer: Jonas Schnelli
-* Bitcoin Icon: (based on the original bitcoin logo from Bitboy)
+* Truthcoin Icon: (based on the original truthcoin logo from Bitboy)
 * Some icons are based on Stephan Hutchings Typicons (these are under CC BY-SA license)
 * License: MIT
 
 ### Assets Used
     src/qt/res/icons/about.png, src/qt/res/icons/about_qt.png,
-    src/qt/res/icons/bitcoin.icns, src/qt/res/icons/bitcoin.ico,
-    src/qt/res/icons/bitcoin.png, src/qt/res/icons/clock*.png,
+    src/qt/res/icons/truthcoin.icns, src/qt/res/icons/truthcoin.ico,
+    src/qt/res/icons/truthcoin.png, src/qt/res/icons/clock*.png,
     src/qt/res/icons/connect[0-3].png, src/qt/res/icons/eye_minus.png,
     src/qt/res/icons/eye_plus.png, src/qt/res/icons/verify.png,
     src/qt/res/icons/tx_inout.png, src/qt/res/icons/tx_input.png,
-    src/qt/res/src/verify.svg, src/qt/res/src/bitcoin.svg,
+    src/qt/res/src/verify.svg, src/qt/res/src/truthcoin.svg,
     src/qt/res/src/clock*.svg, src/qt/res/src/connect*.svg,
     src/qt/res/src/mine.svg, src/qt/res/src/qt.svg, src/qt/res/src/tx*.svg,
     src/qt/res/src/verify.svg,

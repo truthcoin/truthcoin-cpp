@@ -7,13 +7,13 @@
 # Test -alertnotify 
 #
 
-from test_framework import BitcoinTestFramework
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
+from test_framework import TruthcoinTestFramework
+from truthcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from util import *
 import os
 import shutil
 
-class ForkNotifyTest(BitcoinTestFramework):
+class ForkNotifyTest(TruthcoinTestFramework):
 
     alert_filename = None  # Set by setup_network
 

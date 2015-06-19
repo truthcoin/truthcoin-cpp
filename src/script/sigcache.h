@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SCRIPT_SIGCACHE_H
-#define BITCOIN_SCRIPT_SIGCACHE_H
+#ifndef TRUTHCOIN_SCRIPT_SIGCACHE_H
+#define TRUTHCOIN_SCRIPT_SIGCACHE_H
 
 #include "script/interpreter.h"
 
@@ -23,4 +24,4 @@ public:
     bool VerifySignature(const std::vector<unsigned char>& vchSig, const CPubKey& vchPubKey, const uint256& sighash) const;
 };
 
-#endif // BITCOIN_SCRIPT_SIGCACHE_H
+#endif // TRUTHCOIN_SCRIPT_SIGCACHE_H

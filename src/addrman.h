@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_ADDRMAN_H
-#define BITCOIN_ADDRMAN_H
+#ifndef TRUTHCOIN_ADDRMAN_H
+#define TRUTHCOIN_ADDRMAN_H
 
 #include "netbase.h"
 #include "protocol.h"
@@ -514,4 +514,4 @@ public:
     }
 };
 
-#endif // BITCOIN_ADDRMAN_H
+#endif // TRUTHCOIN_ADDRMAN_H

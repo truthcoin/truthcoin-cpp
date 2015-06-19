@@ -1,9 +1,9 @@
 Regression tests of RPC interface
 =================================
 
-### [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinrpc)
-Git subtree of [https://github.com/jgarzik/python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinrpc).
-Changes to python-bitcoinrpc should be made upstream, and then
+### [python-truthcoinrpc](https://github.com/jgarzik/python-truthcoinrpc)
+Git subtree of [https://github.com/jgarzik/python-truthcoinrpc](https://github.com/jgarzik/python-truthcoinrpc).
+Changes to python-truthcoinrpc should be made upstream, and then
 pulled here using git subtree.
 
 ### [test_framework.py](test_framework.py)
@@ -39,5 +39,5 @@ to recover with:
 
 ```bash
 rm -rf cache
-killall bitcoind
+killall truthcoind
 ```

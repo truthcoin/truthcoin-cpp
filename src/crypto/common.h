@@ -1,12 +1,13 @@
 // Copyright (c) 2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CRYPTO_COMMON_H
-#define BITCOIN_CRYPTO_COMMON_H
+#ifndef TRUTHCOIN_CRYPTO_COMMON_H
+#define TRUTHCOIN_CRYPTO_COMMON_H
 
 #if defined(HAVE_CONFIG_H)
-#include "bitcoin-config.h"
+#include "truthcoin-config.h"
 #endif
 
 #include <stdint.h>
@@ -117,4 +118,4 @@ void static inline WriteBE64(unsigned char* ptr, uint64_t x)
 #endif
 }
 
-#endif // BITCOIN_CRYPTO_COMMON_H
+#endif // TRUTHCOIN_CRYPTO_COMMON_H

@@ -3,8 +3,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework import BitcoinTestFramework
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
+from test_framework import TruthcoinTestFramework
+from truthcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from util import *
 
 
@@ -44,7 +44,7 @@ class LongpollThread(threading.Thread):
     def run(self):
         self.node.getblocktemplate({'longpollid':self.longpollid})
 
-class GetBlockTemplateLPTest(BitcoinTestFramework):
+class GetBlockTemplateLPTest(TruthcoinTestFramework):
     '''
     Test longpolling with getblocktemplate.
     '''

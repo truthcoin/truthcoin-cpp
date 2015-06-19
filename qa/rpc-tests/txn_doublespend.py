@@ -7,14 +7,14 @@
 # Test proper accounting with malleable transactions
 #
 
-from test_framework import BitcoinTestFramework
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
+from test_framework import TruthcoinTestFramework
+from truthcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from decimal import Decimal
 from util import *
 import os
 import shutil
 
-class TxnMallTest(BitcoinTestFramework):
+class TxnMallTest(TruthcoinTestFramework):
 
     def add_options(self, parser):
         parser.add_option("--mineblock", dest="mine_block", default=False, action="store_true",

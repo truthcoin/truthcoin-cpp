@@ -1,10 +1,11 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2012 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UI_INTERFACE_H
-#define BITCOIN_UI_INTERFACE_H
+#ifndef TRUTHCOIN_UI_INTERFACE_H
+#define TRUTHCOIN_UI_INTERFACE_H
 
 #include <stdint.h>
 #include <string>
@@ -112,4 +113,4 @@ inline std::string _(const char* psz)
     return rv ? (*rv) : psz;
 }
 
-#endif // BITCOIN_UI_INTERFACE_H
+#endif // TRUTHCOIN_UI_INTERFACE_H

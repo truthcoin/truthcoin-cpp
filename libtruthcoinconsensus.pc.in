@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: Truthcoin Core consensus library
+Description: Library for the Truthcoin consensus protocol.
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -ltruthcoinconsensus
+Cflags: -I${includedir}
+Requires.private: libcrypto

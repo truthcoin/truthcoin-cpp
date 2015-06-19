@@ -1,14 +1,15 @@
 // Copyright (c) 2011-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_UTILITYDIALOG_H
-#define BITCOIN_QT_UTILITYDIALOG_H
+#ifndef TRUTHCOIN_QT_UTILITYDIALOG_H
+#define TRUTHCOIN_QT_UTILITYDIALOG_H
 
 #include <QDialog>
 #include <QObject>
 
-class BitcoinGUI;
+class TruthcoinGUI;
 class ClientModel;
 
 namespace Ui {
@@ -43,10 +44,10 @@ class ShutdownWindow : public QWidget
 
 public:
     ShutdownWindow(QWidget *parent=0, Qt::WindowFlags f=0);
-    static void showShutdownWindow(BitcoinGUI *window);
+    static void showShutdownWindow(TruthcoinGUI *window);
 
 protected:
     void closeEvent(QCloseEvent *event);
 };
 
-#endif // BITCOIN_QT_UTILITYDIALOG_H
+#endif // TRUTHCOIN_QT_UTILITYDIALOG_H

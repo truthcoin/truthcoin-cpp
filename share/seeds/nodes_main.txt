@@ -515,7 +515,7 @@
 223.18.254.55
 
 # Onion nodes
-bitcoinostk4e4re.onion:8333
+truthcoinostk4e4re.onion:8333
 5k4vwyy5stro33fb.onion:8333
 zy3kdqowmrb7xm7h.onion:8333
 e3tn727fywnioxrc.onion:8333

@@ -7,13 +7,13 @@
 # on chains of different lengths, and join the network together again.
 # This gives us two tips, verify that it works.
 
-from test_framework import BitcoinTestFramework
+from test_framework import TruthcoinTestFramework
 from util import assert_equal
 
-class GetChainTipsTest (BitcoinTestFramework):
+class GetChainTipsTest (TruthcoinTestFramework):
 
     def run_test (self):
-        BitcoinTestFramework.run_test (self)
+        TruthcoinTestFramework.run_test (self)
 
         tips = self.nodes[0].getchaintips ()
         assert_equal (len (tips), 1)

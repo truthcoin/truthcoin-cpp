@@ -11,7 +11,7 @@ function echoerr {
 
 # Usage: ExtractKey <key> "<json_object_string>"
 # Warning: this will only work for the very-well-behaved
-# JSON produced by bitcoind, do NOT use it to try to
+# JSON produced by truthcoind, do NOT use it to try to
 # parse arbitrary/nested/etc JSON.
 function ExtractKey {
     echo $2 | tr -d ' "{}\n' | awk -v RS=',' -F: "\$1 ~ /$1/ { print \$2}"
@@ -20,7 +20,7 @@ function ExtractKey {
 function CreateDataDir {
   DIR=$1
   mkdir -p $DIR
-  CONF=$DIR/bitcoin.conf
+  CONF=$DIR/truthcoin.conf
   echo "regtest=1" >> $CONF
   echo "keypool=2" >> $CONF
   echo "rpcuser=rt" >> $CONF

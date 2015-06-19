@@ -1,13 +1,14 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_MAIN_H
-#define BITCOIN_MAIN_H
+#ifndef TRUTHCOIN_MAIN_H
+#define TRUTHCOIN_MAIN_H
 
 #if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
+#include "config/truthcoin-config.h"
 #endif
 
 #include "amount.h"
@@ -539,4 +540,4 @@ protected:
     friend void ::UnregisterAllValidationInterfaces();
 };
 
-#endif // BITCOIN_MAIN_H
+#endif // TRUTHCOIN_MAIN_H

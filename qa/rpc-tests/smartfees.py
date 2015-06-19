@@ -7,11 +7,11 @@
 # Test fee estimation code
 #
 
-from test_framework import BitcoinTestFramework
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
+from test_framework import TruthcoinTestFramework
+from truthcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 from util import *
 
-class EstimateFeeTest(BitcoinTestFramework):
+class EstimateFeeTest(TruthcoinTestFramework):
 
     def setup_network(self):
         self.nodes = []

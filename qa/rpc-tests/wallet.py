@@ -18,11 +18,11 @@
 #   j) check balances - node0 should have 0, node2 should have 100
 #
 
-from test_framework import BitcoinTestFramework
+from test_framework import TruthcoinTestFramework
 from util import *
 
 
-class WalletTest (BitcoinTestFramework):
+class WalletTest (TruthcoinTestFramework):
 
     def setup_chain(self):
         print("Initializing test directory "+self.options.tmpdir)

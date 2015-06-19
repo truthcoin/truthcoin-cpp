@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_POW_H
-#define BITCOIN_POW_H
+#ifndef TRUTHCOIN_POW_H
+#define TRUTHCOIN_POW_H
 
 #include <stdint.h>
 
@@ -19,4 +20,4 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 bool CheckProofOfWork(uint256 hash, unsigned int nBits);
 arith_uint256 GetBlockProof(const CBlockIndex& block);
 
-#endif // BITCOIN_POW_H
+#endif // TRUTHCOIN_POW_H

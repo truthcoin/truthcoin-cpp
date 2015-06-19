@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2013 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SYNC_H
-#define BITCOIN_SYNC_H
+#ifndef TRUTHCOIN_SYNC_H
+#define TRUTHCOIN_SYNC_H
 
 #include "threadsafety.h"
 
@@ -271,4 +272,4 @@ public:
     }
 };
 
-#endif // BITCOIN_SYNC_H
+#endif // TRUTHCOIN_SYNC_H

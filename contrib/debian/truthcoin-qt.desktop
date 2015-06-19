@@ -1,0 +1,12 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Truthcoin
+Comment=Truthcoin P2P Cryptocurrency
+Comment[fr]=Truthcoin, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=Truthcoin, eşten eşe kriptografik sanal para birimi
+Exec=truthcoin-qt %u
+Terminal=false
+Type=Application
+Icon=truthcoin128
+MimeType=x-scheme-handler/truthcoin;
+Categories=Office;Finance;

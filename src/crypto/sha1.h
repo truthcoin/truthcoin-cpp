@@ -1,9 +1,10 @@
 // Copyright (c) 2014 The Bitcoin Core developers
+// Copyright (c) 2015 The Truthcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CRYPTO_SHA1_H
-#define BITCOIN_CRYPTO_SHA1_H
+#ifndef TRUTHCOIN_CRYPTO_SHA1_H
+#define TRUTHCOIN_CRYPTO_SHA1_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -25,4 +26,4 @@ public:
     CSHA1& Reset();
 };
 
-#endif // BITCOIN_CRYPTO_SHA1_H
+#endif // TRUTHCOIN_CRYPTO_SHA1_H
