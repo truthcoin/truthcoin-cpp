@@ -24,7 +24,7 @@ namespace Checkpoints {
      */
     static const double SIGCHECK_VERIFICATION_FACTOR = 5.0;
 
-    bool fEnabled = true;
+    bool fEnabled = false;
 
     bool CheckBlock(int nHeight, const uint256& hash)
     {
@@ -77,7 +77,7 @@ namespace Checkpoints {
 
         const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
 
-        return checkpoints.rbegin()->first;
+        return checkpoints.size()? checkpoints.rbegin()->first: 0;
     }
 
     CBlockIndex* GetLastCheckpoint()

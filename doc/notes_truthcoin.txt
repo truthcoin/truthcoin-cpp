@@ -1,0 +1,132 @@
+
+Market Maker
+-------------
+
+Hanson Automated Market Maker. An event must result in exactly one of n
+possible mutually distinct outcomes. Each outcome is assigned a potentially
+unlimited number of shares which are valued at the event's end to be either
+zero or one depending on which outcome occured. Shares are purchased or sold
+from a market maker which has a fixed formula C for its account value depending
+solely on the number of shares outstanding. The cost of purchasing or selling
+shares is the difference of this formula before and after the transaction.
+That is, the total cost to buy (or sell if the values are negative) M={M1,M2,
+...,Mn} shares when there are currently N={N1,N2,...Nn} shares outstanting is
+C(N+M) - C(N).
+
+In order for the market maker formula C to represent meaningful prices, we
+have the constraints
+   1. Probability. The price of a share is the market's indication of the 
+      probability of that outcome. Each term of grad C must be between zero 
+      and one and collectively sum to one.
+   2. Convexity. Repeatedly purchasing a set of shares is increasingly more
+      expensive. That is, C(N+2M) - C(N+M) >= C(N+M) - C(N).
+
+The first two constraints suggest the consideration of the convex conjugate
+of C. The convex conjugate of a function f is f^(y) = sup_x {<x,y> - f(x)}.
+The difference in the braces is the difference of the graphs of z=f(x) and the
+plane z=<x,y>, with the supremum occuring when y = (grad f)(x). By sliding the
+plane down to be tangent of f, we have that f^ is just the negative z-intercept
+of the tangent to f. The conjugate f^ is immediately seen to be convex by 
+expanding linear combinations of y and f(x) in the first equation. The conjugate
+of the conjugate is the highest convex function sitting below f since
+   f^^(x) = sup {<y,x> - f^(y)}
+          = sup {<y,x> + the z-intercept of the tangents to the graph of f}.
+          = highest value at x on all tangents to the graph of f.
+          = f(x) if f is convex.
+Likewise the x in the relations y = (grad f)(x) and x = (grad f^)(y) are the
+same x and so we have (grad f^)((grad f)(x)) = x.
+
+Hanson's market scoring rules are simply the convex conjugates of the market
+maker's account formulas C and vice versa. Consider the set of probabilities 
+P={p1,p2,...,pn} of the outcomes such that each p is between zero and one and 
+together they sum to one. Any function S(P) is called a score and moreover S 
+is called a proper score if it is convex.  Hanson creates a rule of scoring 
+by the process: For each point P there is a tangent at S(P) which intersects
+the n axes. Call these intersections S1(P), S2(P), ..., Sn(P). If the probabil-
+ities {q1,q2,...,qn} are known then the expectation E[S(P)] = S1(P)q1 + S2(P)q2
++ ... + Sn(P)qn can be compared against other scores. Now consider the convex
+conjugate of S, C = S^. It follows that
+   (grad C)((grad S)(P)) = (grad S^)((grad S)(P)) = P, 
+and we have what we need in order for C to be a market maker formula.
+
+Example. Lognormal Scoring Rule.
+   S(P) = b sum_i pi log pi
+   Si(P) = b log pi
+   C(N) = b log sum exp(Ni/b)
+
+Scaled Markets. For events resulting in exactly one value x in a range [a,b],
+the outcome set is approximated to be n disjoint outcomes where
+   [a,a+h], [a+h,a+2h], ... , [a+(n-1)h,a+nh] where h = (b-a)/n.
+Any share to be worth an increasing function of x at the event's end is
+approximated with a basket of shares in each of the lower events.
+
+Liquidity Sensitivity. TODO
+
+
+
+Deciding Outcomes
+-----------------
+
+Periodically there will be a vote among the votecoin holders ("the voters")
+to decide which outcomes occurred for the events recently ended. The outcomes
+are decided as follows
+   1. During a Voting Period, Voters can 
+      a) query for a ballot. The ballot will contain the list of the recently
+      ended decisions along with the possible outcomes. 
+      b) select an outcome (or NA) for each decision. 
+      c) submit that they have voted, with a hash of their answers.
+   2. After the Voting Period has ended, voters submit their actual votes
+      which must match their previous hash.
+   3. A m x n Vote Matrix M is formed (m = number of voters, n = number of
+      decisions). NA responses are filled in based on an abbreviated matrix.
+   4. New reputation values for the voters are calculated.
+   5. Outcomes are decided based on the filled Voter Matrix and the new 
+      reputation values.
+
+TODO: explain everything below more thoroughly.
+
+Step 3: Vote Matrix.
+
+   Let M be a m x n Vote Matrix (m = number of voters, n = number of decisions)
+   which may or may not have NA values, and let r be a Reputation Vector (m = 
+   number of voters).
+   
+   The Filled Vote Matrix is the Vote Mattrix with each NA replaced with the 
+   corresponding value of the Preliminary Outcome Vector.
+
+   A Preliminary Outcome Vector is arrived at as follows. Let mi be the j-th
+   column in M of all votes case for the j-th decision. Remove all entries of
+   the vectors {r,mj} corresponding to NA values. Set the weights of the
+   shortened reputation vector r by setting r_j = |r_j|/Sum |r_i|. The outcome
+   is then sum r_j m_j if the decision is binary, the weighted median otherwise.
+
+Step 4: New Reputation values.
+
+   Let M be the m x n Filled Vote Matrix and r the Reputation Vector.
+   Then let A be the reputation-weighted covariance matrix of M
+      A_ij = sum_k r_k (M_ki - wgtavg(M_.i)) (M_kj - wgtavg(M_.j))
+             / (1 - sum_k r_k^2),
+   with singular value decomposition of A = U D V^T where 
+      U m x m unitary 
+      D m x n diagonal matrix with nonincreasing diagonal entries
+      V n x n unitary.
+
+   The first column u of U will be used to adjust the voters reputation values
+   as follows. Let 
+      Score = V u
+      Score1 = Score + |min{Score}|, New1 = Score1^T M, reweighted
+      Score2 = Score - |max{Score}|, New2 = Score2^T M, reweighted
+   uadj = ( ||New1 -  r^T M|| < ||New2 - r^T M|| )? Score1: Score2;
+   z be defined by z_i = uadj_i * r_i / avg{r_i}.
+   rr be defined by rr_i = |z_i| / sum |z_i|.
+  
+   Then the New Reputation Vector r is 
+     new r = alpha * rr  + (1 - alpha) * r.
+
+Step 5: Final Outcomes.
+
+   To arrive at the final outcome values, use the same process to find the
+   Preliminary Outcome Vector in Step 3, but with the New Reputation Vector
+   and the current Filled Vote Matrix.
+
+

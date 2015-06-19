@@ -1,12 +1,13 @@
-Truthcoin Core 0.10.99
+Truthcoin Core 0.0.1
 =====================
 
 Intro
 -----
-Truthcoin is a free open source peer-to-peer electronic cash system that is
-completely decentralized, without the need for a central server or trusted
-parties.  Users hold the crypto keys to their own money and transact directly
-with each other, with the help of a P2P network to check for double-spending.
+Truthcoin is a free open source peer-to-peer distributed oracle system and
+prediction marketplace that is completely decentralized, without the need for
+a central server or trusted parties.  Users hold the crypto keys to their own
+money and transact directly with each other, with the help of a P2P network to
+check for double-spending.
 
 
 Setup

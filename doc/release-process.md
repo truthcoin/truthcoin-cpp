@@ -2,7 +2,7 @@ Release Process
 ====================
 
 * update translations (ping wumpus, Diapolo or tcatm on IRC)
-* see https://github.com/truthcoin/truthcoin/blob/master/doc/translation_process.md#syncing-with-transifex
+* see https://github.com/psztorc/truthcoin-cpp/blob/master/doc/translation_process.md#syncing-with-transifex
 
 * * *
 
@@ -33,8 +33,8 @@ Release Process
   
 	export SIGNER=(your gitian key, ie bluematt, sipa, etc)
 	export VERSION=(new version, e.g. 0.8.0)
-	pushd ./truthcoin
-	git checkout v${VERSION}
+	pushd ./truthcoin-cpp
+	git checkout t${VERSION}
 	popd
 	pushd ./gitian-builder
 
@@ -54,20 +54,20 @@ Release Process
 
   By default, gitian will fetch source files as needed. For offline builds, they can be fetched ahead of time:
 
-	make -C ../truthcoin/depends download SOURCES_PATH=`pwd`/cache/common
+	make -C ../truthcoin-cpp/depends download SOURCES_PATH=`pwd`/cache/common
 
   Only missing files will be fetched, so this is safe to re-run for each build.
 
 ###Build Truthcoin Core for Linux, Windows, and OS X:
   
-	./bin/gbuild --commit truthcoin=v${VERSION} ../truthcoin/contrib/gitian-descriptors/gitian-linux.yml
-	./bin/gsign --signer $SIGNER --release ${VERSION}-linux --destination ../gitian.sigs/ ../truthcoin/contrib/gitian-descriptors/gitian-linux.yml
+	./bin/gbuild --commit truthcoin-cpp=t${VERSION} ../truthcoin-cpp/contrib/gitian-descriptors/gitian-linux.yml
+	./bin/gsign --signer $SIGNER --release ${VERSION}-linux --destination ../gitian.sigs/ ../truthcoin-cpp/contrib/gitian-descriptors/gitian-linux.yml
 	mv build/out/truthcoin-*.tar.gz build/out/src/truthcoin-*.tar.gz ../
-	./bin/gbuild --commit truthcoin=v${VERSION} ../truthcoin/contrib/gitian-descriptors/gitian-win.yml
-	./bin/gsign --signer $SIGNER --release ${VERSION}-win --destination ../gitian.sigs/ ../truthcoin/contrib/gitian-descriptors/gitian-win.yml
+	./bin/gbuild --commit truthcoin-cpp=t${VERSION} ../truthcoin-cpp/contrib/gitian-descriptors/gitian-win.yml
+	./bin/gsign --signer $SIGNER --release ${VERSION}-win --destination ../gitian.sigs/ ../truthcoin-cpp/contrib/gitian-descriptors/gitian-win.yml
 	mv build/out/truthcoin-*.zip build/out/truthcoin-*.exe ../
-	./bin/gbuild --commit truthcoin=v${VERSION} ../truthcoin/contrib/gitian-descriptors/gitian-osx.yml
-	./bin/gsign --signer $SIGNER --release ${VERSION}-osx-unsigned --destination ../gitian.sigs/ ../truthcoin/contrib/gitian-descriptors/gitian-osx.yml
+	./bin/gbuild --commit truthcoin-cpp=t${VERSION} ../truthcoin-cpp/contrib/gitian-descriptors/gitian-osx.yml
+	./bin/gsign --signer $SIGNER --release ${VERSION}-osx-unsigned --destination ../gitian.sigs/ ../truthcoin-cpp/contrib/gitian-descriptors/gitian-osx.yml
 	mv build/out/truthcoin-*-unsigned.tar.gz inputs/truthcoin-osx-unsigned.tar.gz
 	mv build/out/truthcoin-*.tar.gz build/out/truthcoin-*.dmg ../
 	popd
@@ -100,8 +100,8 @@ Commit your signature to gitian.sigs:
 	pushd ./gitian-builder
 	# Fetch the signature as instructed by Gavin
 	cp signature.tar.gz inputs/
-	./bin/gbuild -i ../truthcoin/contrib/gitian-descriptors/gitian-osx-signer.yml
-	./bin/gsign --signer $SIGNER --release ${VERSION}-osx-signed --destination ../gitian.sigs/ ../truthcoin/contrib/gitian-descriptors/gitian-osx-signer.yml
+	./bin/gbuild -i ../truthcoin-cpp/contrib/gitian-descriptors/gitian-osx-signer.yml
+	./bin/gsign --signer $SIGNER --release ${VERSION}-osx-signed --destination ../gitian.sigs/ ../truthcoin-cpp/contrib/gitian-descriptors/gitian-osx-signer.yml
 	mv build/out/truthcoin-osx-signed.dmg ../truthcoin-${VERSION}-osx.dmg
 	popd
 

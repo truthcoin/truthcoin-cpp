@@ -1,27 +1,86 @@
-Truthcoin Core integration/staging tree
+Truthcoin Core
 =====================================
 
 [![Build Status](https://travis-ci.org/truthcoin/truthcoin.svg?branch=master)](https://travis-ci.org/truthcoin/truthcoin)
 
-https://www.truthcoin.org
+This is the actual C++ implementation of [the theoretical work here](https://github.com/psztorc/Truthcoin).
+
+For Windows users who barely understand how GitHub works, there is an [immediately useable version of the Truthcoin Core located here](https://github.com/truthcoin/exe).
 
 What is Truthcoin?
 ----------------
 
-Truthcoin is an experimental new digital currency that enables instant payments to
-anyone, anywhere in the world. Truthcoin uses peer-to-peer technology to operate
-with no central authority: managing transactions and issuing money are carried
-out collectively by the network. Truthcoin Core is the name of open source
-software which enables the use of this currency.
+Truthcoin is an ambitious modification of Bitcoin, which extends Bitcoin's abilities (the sending of value-tokens) by adding the ability to create and participate in [markets for event derivatives ("prediction markets")](https://en.wikipedia.org/wiki/Prediction_market).
 
-For more information, as well as an immediately useable, binary version of
-the Truthcoin Core software, see https://www.truthcoin.org/en/download.
+Although substantially more complex, Truthcoin offers correspondingly substantial benefits, having potentially world-changing implications for science, taxation, corporate governance and politics. 
+
+Truthcoin includes two types of value-token.  One, "CashCoin", is used for storing value, buying/selling in markets and paying transaction fees to miners. This coin will resemble Bitcoin-testnet-money (an "Altcoin") for the duration of pre-release testing, and will then be a [sidechain](http://www.blockstream.com/) of Bitcoin. Therefore, the network will "accept" Bitcoin (indeed, this will be the only currency the network accepts). The second (less important) token, "VoteCoin", is used to track a smaller group of special users and reward them for providing reports to the blockchain on the status of the bet-upon events.
+
+[http://www.truthcoin.info](http://www.truthcoin.info)
 
 License
 -------
 
 Truthcoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see http://opensource.org/licenses/MIT.
+
+
+Current Install Instructions
+---------------------------
+
+To compile on Debian 64-bit Precise for Linux, Windows and Mac, see the Gitian build instructions in ```/doc```.
+
+To compile on Ubuntu 14.04:
+
+```
+# Install Git
+sudo apt-get install git
+
+# Download Truthcoin
+git clone https://github.com/psztorc/truthcoin-cpp.git
+
+# (permission is required)
+# Username:
+XXXXXXX
+# Personal Access Token:
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Download Build Essential
+sudo apt-get install build-essential
+
+# Download BerkeleyDB (note that Ubuntu's BDB 5.1 is not backwards compatible).
+wget http://download.oracle.com/berkeley-db/db-4.8.30.NC.tar.gz
+echo '12edc0df75bf9abd7f82f821795bcee50f42cb2e5f76a6a281b85732798364ef  db-4.8.30.NC.tar.gz' | sha256sum -c
+# db-4.8.30.NC.tar.gz: OK
+
+# Install BerkelyDB
+tar -xvf db-4.8.30.NC.tar.gz
+cd db-4.8.30.NC/build_unix
+mkdir -p build
+BDB_PREFIX=$(pwd)/build
+../dist/configure --disable-shared --enable-cxx --with-pic --prefix=$BDB_PREFIX
+make install
+cd ../..
+
+# Install Remaining Dependencies
+sudo apt-get install autoconf libboost-all-dev libssl-dev libtool libdb++-dev libprotobuf-dev protobuf-compiler libqt4-dev libqrencode-dev 
+
+
+# Install Truthcoind (no GUI)
+cd truthcoin-cpp/src/
+make truthcoind
+make truthcoin-cli
+
+# # Install Truthcoin
+# cd truthcoin-cpp
+# ./autogen.sh
+# ./configure --with-incompatible-bdb
+# make
+# make install # optional
+```
+
+
+<!--
 
 Development process
 -------------------
@@ -45,6 +104,7 @@ The `master` branch is regularly built and tested, but is not guaranteed to be
 completely stable. [Tags](https://github.com/truthcoin/truthcoin/tags) are created
 regularly to indicate new official, stable release versions of Truthcoin.
 
+
 Testing
 -------
 
@@ -53,16 +113,23 @@ requests than we can review and test on short notice. Please be patient and help
 other people's pull requests, and remember this is a security-critical project where any mistake might cost people
 lots of money.
 
+-->
+
+Testing
+-------
+
 ### Automated Testing
 
 Developers are strongly encouraged to write unit tests for new code, and to
 submit new unit tests for old code. Unit tests can be compiled and run (assuming they weren't disabled in configure) with: `make check`
 
+<!--
 Every pull request is built for both Windows and Linux on a dedicated server,
 and unit and sanity tests are automatically run. The binaries produced may be
 used for manual QA testing — a link to them will appear in a comment on the
 pull request posted by [TruthcoinPullTester](https://github.com/TruthcoinPullTester). See https://github.com/TheBlueMatt/test-scripts
 for the build/test scripts.
+-->
 
 ### Manual Quality Assurance (QA) Testing
 
@@ -70,6 +137,7 @@ Large changes should have a test plan, and should be tested by somebody other
 than the developer who wrote the code.
 See https://github.com/truthcoin/QA/ for how to create a test plan.
 
+<!--
 Translations
 ------------
 
@@ -83,3 +151,5 @@ Translations are periodically pulled from Transifex and merged into the git repo
 pull from Transifex would automatically overwrite them again.
 
 Translators should also subscribe to the [mailing list](https://groups.google.com/forum/#!forum/truthcoin-translators).
+
+-->

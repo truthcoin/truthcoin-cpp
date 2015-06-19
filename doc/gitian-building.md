@@ -41,7 +41,7 @@ Debian Linux was chosen as the host distribution because it has a lightweight in
 Any kind of virtualization can be used, for example:
 - [VirtualBox](https://www.virtualbox.org/), covered by this guide
 - [KVM](http://www.linux-kvm.org/page/Main_Page)
-- [LXC](https://linuxcontainers.org/), see also [Gitian host docker container](https://github.com/gdm85/tenku/tree/master/docker/gitian-truthcoin-host/README.md).
+- [LXC](https://linuxcontainers.org/), see also [Gitian host docker container](https://github.com/gdm85/tenku/tree/master/docker/gitian-bitcoin-host/README.md).
 
 You can also install on actual hardware instead of using virtualization.
 
@@ -281,9 +281,9 @@ Clone the git repositories for truthcoin and gitian and then checkout the truthc
 
 ```bash
 git clone https://github.com/devrandom/gitian-builder.git
-git clone https://github.com/truthcoin/truthcoin
-cd truthcoin
-git checkout v${VERSION}
+git clone https://github.com/psztorc/truthcoin-cpp
+cd truthcoin-cpp
+git checkout t${VERSION}
 cd ..
 ```
 
@@ -332,12 +332,12 @@ tail -f var/build.log
 
 Output from `gbuild` will look something like
 
-    Initialized empty Git repository in /home/debian/gitian-builder/inputs/truthcoin/.git/
+    Initialized empty Git repository in /home/debian/gitian-builder/inputs/truthcoin-cpp/.git/
     remote: Reusing existing pack: 35606, done.
     remote: Total 35606 (delta 0), reused 0 (delta 0)
     Receiving objects: 100% (35606/35606), 26.52 MiB | 4.28 MiB/s, done.
     Resolving deltas: 100% (25724/25724), done.
-    From https://github.com/truthcoin/truthcoin
+    From https://github.com/psztorc/truthcoin-cpp
     ... (new tags, new branch etc)
     --- Building for precise x86_64 ---
     Stopping target if it is up
@@ -365,9 +365,9 @@ For example:
 ```bash
 URL=https://github.com/laanwj/truthcoin.git
 COMMIT=2014_03_windows_unicode_path
-./bin/gbuild --commit truthcoin=${COMMIT} --url truthcoin=${URL} ../truthcoin/contrib/gitian-descriptors/gitian-linux.yml
-./bin/gbuild --commit truthcoin=${COMMIT} --url truthcoin=${URL} ../truthcoin/contrib/gitian-descriptors/gitian-win.yml
-./bin/gbuild --commit truthcoin=${COMMIT} --url truthcoin=${URL} ../truthcoin/contrib/gitian-descriptors/gitian-osx.yml
+./bin/gbuild --commit truthcoin-cpp=${COMMIT} --url truthcoin-cpp=${URL} ../truthcoin-cpp/contrib/gitian-descriptors/gitian-linux.yml
+./bin/gbuild --commit truthcoin-cpp=${COMMIT} --url truthcoin-cpp=${URL} ../truthcoin-cpp/contrib/gitian-descriptors/gitian-win.yml
+./bin/gbuild --commit truthcoin-cpp=${COMMIT} --url truthcoin-cpp=${URL} ../truthcoin-cpp/contrib/gitian-descriptors/gitian-osx.yml
 ```
 
 Signing externally

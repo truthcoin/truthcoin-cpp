@@ -1,0 +1,316 @@
+
+Bitcoin Blockchain
+------------------
+
+The bitcoin block-chain format is:
+
+   block ::=    uint32      magic_number (0xd9b4bef9)
+                uint32      nbytes       (excluding magic_number and nbytes)
+                blockhdr    hdr
+                varint      ntxs
+                {tx}+       transaction array
+  
+   blockhdr ::= uint32      version_number (0x00000001 or 0x00000002)
+                uint256     prev_block_hash
+                uint256     merkle_root 
+                uint32      time_stamp
+                uint32      difficulty_bits
+                uint32      nonce
+ 
+   tx ::=       uint32      version_number
+                varint      ninputs
+                {input}+    input array
+                varint      noutputs
+                {output}+   output array
+                uint32      lock_time
+   
+   input ::=    uint256     prev_hash
+                uint32      prev_index
+                script      input_script
+                uint32      sequence
+ 
+   output ::=   uint64      amount
+                script      output_script
+  
+Input scripts generally just push data (e.g., a signature as proof of possessing
+the private key) onto the stack which when used with the previous output script
+evaluates to true (e.g., OP_CHECKSIG).
+
+The hash of a block is the two-round sha256 hash of the blockhdr. The hash of a
+transaction is the two-round sha256 hash of the tx. The merkle_root is the root
+of the merkle tree of all hashes of the transactions.
+
+Example output scripts:
+
+     Standard Generation Transaction (pay-to-pubkey):
+     script = OP_PUSHx41 publickey_uncompressed OP_CHECKSIG 
+              | OP_PUSHx21 publickey_compressed OP_CHECKSIG
+
+     Standard Transaction to Bitcoin address (pay-to-pubkey-hash)
+     script = OP_DUP OP_HASH160 OP_PUSHx14 pubkey_hash 
+                  OP_EQUALVERIFY OP_CHECKSIG
+              | OP_HASH160 OP_PUSHx14 pubkey_hash OP_EQUAL
+
+     Standard MiltiSig
+     script = OP_X {OP_PUSH public_key}N OP_N OP_CHECKMULTISIG
+
+
+Example input scripts:
+
+     Standard Signature: 
+     script = OP_PUSHxXX {DER_sig SIGHASH_ALL}
+                  OP_PUSHx41 publickey_uncompressed
+            | OP_PUSHxXX {DER_sig SIGHASH_ALL}
+                  OP_PUSHx21 publickey_compressed
+
+     DER_sig ::=  uint8       DER_type (sequence: 0x30) 
+                  uint8       DER_length (nbytes of sequence) 
+                  uint8       DER_type (integer 0x02)
+                  uint8       DER_length (nbytes of the integer)
+                  {uint8}+    r
+                  uint8       DER_type (integer 0x02)
+                  uint8       DER_length (nbytes of the integer)
+                  {uint8}+    s
+
+     DER_sig is the standard DER format of a pair of integers.
+     The signature values (r,s) are the ECDSA values to sign the 
+     two-round hash of the current tx (except that the previous
+     transaction's input script is used and the SIGHASH_ALL tag
+     is added to the end):
+
+     txsig ::=    uint32      version_number
+                  varint      ninputs
+                  {inputsig}+ input array
+                  varint      noutputs
+                  {output}+   output array
+                  uint32      lock_time
+                  uint32      SIGHASH_ALL
+
+     inputsig ::= uint256     prev_hash
+                  uint32      prev_index
+                  script      previous tx's output script
+                  uint32      sequence
+
+
+
+Truthcoin Blockchain
+--------------------
+
+Bitcoin's block chain can be viewed as a ledger of actions on a dataset. The
+dataset is the set of all coin allocations to addresses and the actions are
+the transfers of coins from a subset of addresses to other addresses. 
+
+Truthcoin is a generalization of both the dataset and the set of actions.
+
+Truthcoin's dataset consists of sets of:
+   1. cashcoin allocations to public addresses
+   2. votecoin allocations to public addresses
+   3. branches
+   4. decisions within each branch
+   5. markets across a subset of decisions
+   6. trades in each market
+   7. ballots (votes on each decision, and hence market)
+   8. outcomes of each decision (and hence market)
+
+Truthcoin's actions consists of:
+   1. all bitcoin-type transfers of cashcoins.
+   2. creation of branches (note: this is done in a very limited fashion)
+   3. creation of decisions
+   4. creation of markets
+   5. creation of trades
+   6. creation of vote ballots
+   7. publishing outcomes with transfers of cashcoins.
+   8. redistributions of votecoin allocations 
+
+Anyone with cashcoins may initiate any of the actions 1,3,4,5. Anyone with
+votecoins will be obligated to initiate action 6. The miners will initiate
+7 and 8. 
+
+Each truthcoin-specific action is a bitcoin-like transaction where the output 
+script designates one of the actions to be taken. The format of the output
+script is simply:
+ 
+   output_script =
+         OP_PUSHxXX    number of bytes
+         char          action_type
+         {uint8}+      action_data
+         OP_MARKET     0xc0
+
+If viewed as a stack operation, action_type and action_data are simply pushed 
+onto the stack and then OP_MARKET acts as an operation to (1) do the action 
+specified by the action_type using action_data as inputs and (2) clear the 
+stack with a TRUE result. The action_type byte will specify one of the 
+truthcoin-specific actions 2-8 above.  The specific format for action_data is 
+as follows.
+
+
+
+Create Branch
+-------------
+
+  action_type = char        'B' (create_branch)
+  action_data = string      name
+                string      description
+                uint64      baseListingFee
+                uint16      freeDecisions
+                uint16      targetDecisions
+                uint16      maxDecisions
+                uint64      minTradingFee
+                uint16      tau (in block numbers)
+                uint16      ballotTime (in block numbers)
+                uint16      unsealTime (in block numbers)
+                uint32      consensusThreshold
+
+  Note 1: Each branch has its own set of votecoins. When a new branch is created,
+  it is simply a many-address-to-many-address votecoin transaction along with a
+  single create_branch action in the output list. The input votecoins will no
+  longer be a part of their previous branches and the output votecoins will now
+  be a part of the new branch.
+
+  Note 2: Each block number ending in a multiple of tau denotes the start of a 
+  voting period for the branch's recently ended decisions. The schedule is
+
+     block number / range
+     -----------------------------------   -----------------------------------
+     n*tau                                 ballots available for all decisions 
+                                              ending ((n-1)*tau, n*tau] 
+     (n*tau, n*tau+ballotTime]             sealed ballots may be submitted
+     (n*tau, n*tau+ballotTime+unsealTime)  unsealed ballots may be submitted
+     n*tau + ballotTime + unsealTime       miner runs outcome algorithm
+                                               
+  We must have ballotTime + unsealTime less than tau so that the change of 
+  votecoins in an outcome is set before the next run of the outcome algorithm.
+
+  It is desireable to have tau correspond to approximately two weeks (for 10
+  minute block spacing, tau = 2016).
+
+  Note 3: The outcome algorithm is best when there are many decisions on a
+  ballot, but not too many. The cost to create a decision for a ballot is thus
+  structured to depend on how many decisions have already been created for 
+  that specific ballot. The parameters 
+       freeDecisions <= targetDecisions <= maxDecisions.
+  are required.  For the N-th decision ending in (n-1)*tau, n*tau], the 
+  "listing fee" cost to create another decision in that interval will be
+
+     cost                                  N
+     -----------------------------------   -----------------------------------
+     0                                     [0, freeDecisions)
+     baseListingFee                        [freeDecisions, targetDecisions)
+     (N - targetDecisions)*baseListingFee  [targetDecisions, maxDecisions)
+     impossible                            [maxDecisions,infty)
+     
+  Note 4: TODO: consensusThreshold requirement for the outcome algorithm
+
+  Note 5: TODO: minTradingFee
+
+  Note 6: TODO: The creation of a new branch is a controlled process.
+ 
+
+Create Decision
+---------------
+
+  action_type = char        'D' (create_decision)
+  action_data = uint160     cashcoin public key
+                uint256     branchid
+                string      prompt
+                uint32      eventOverBy (block number)
+                uint8       is_scaled (0=false, 1=true)
+                uint64      if scaled, minimum
+                uint64      if scaled, maximum
+                uint8       answer optionality (0=not optional, 1=optional)
+
+  Note 1: The creator of the decision pays a listing fee according to the 
+  branch parameters and will receive a portion of the trading fees of all
+  markets on that decision. The outcome algorithm will allocate 25% of 
+  each market's trading fees across the cashcoin public keys the market's
+  decision list.
+
+
+Create Market
+-------------
+     
+  action_type = char        'M' (create_market)
+  action_data = uint160     cashcoin public key
+                uint64      B (liquidity parameter)
+                uint64      tradingFee     
+                string      title
+                string      description
+                string      tags (comma-separated strings)
+                uint32      maturation (block number)
+                varint      number of decisionids
+                {uint256}+  decisionids
+                {uint8}+    decisionFunctionids
+                uint64      initial account value
+     
+
+  Note 1: The market will be dependent on the outcome of each decision
+  in the list. The maturation is set to be the maximum of the decision's 
+  eventOverBy numbers.
+ 
+  Note 2: The market may depend on a function of the scaled decisions.
+  The initial list of functions are
+
+     id                                    f(X)
+     ----------------------                ------------------ 
+     X1 [default]                          X
+     X2                                    X*X
+     X3                                    X*X*X
+     LNX1                                  LN(X)
+
+  Note 3: TODO: B and initial account value
+
+
+
+Create Trade
+------------
+
+  action_type = char        'T' (create_trade)
+  action_data = uint160     cashcoin public key
+                uint256     marketid
+                uint8       isbuy
+                uint64      number of shares
+                uint64      price
+                uint32      decision state
+                uint32      nonce
+
+  Note 1: TODO
+
+
+
+Create Vote
+-----------
+     
+  action_type = char        'V' (create_voteballot)
+  action_data = uint160     votecoin public key
+                varint      ndecisionids
+                {uint256}+  decisionids
+                {uint64}+   votes
+
+     
+
+Create Outcome
+--------------
+
+  action_type = char        'O' (publish_outcomes)
+  action_data =   
+                TODO
+     
+  action_type = char        'R' (redistribution of votecoins)
+  action_data = varint      noutputs
+                {output}+   output array (pay-to-pubkey-hash)
+     
+
+
+
+
+Additional
+--------------
+
+In order to avoid possible censorship by a miner, some of the actions have the
+option to be done in a multi-step process. For the actions involving strings 
+(create_branch, create_decision, create_market), any empty string field can be
+filled in by the owner at any time afterward by creating a TODO...  
+
+A create_voteballot  TODO...
+ 
+

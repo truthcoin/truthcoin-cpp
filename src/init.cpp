@@ -283,7 +283,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "  -onion=<ip:port>       " + strprintf(_("Use separate SOCKS5 proxy to reach peers via Tor hidden services (default: %s)"), "-proxy") + "\n";
     strUsage += "  -onlynet=<net>         " + _("Only connect to nodes in network <net> (ipv4, ipv6 or onion)") + "\n";
     strUsage += "  -permitbaremultisig    " + strprintf(_("Relay non-P2SH multisig (default: %u)"), 1) + "\n";
-    strUsage += "  -port=<port>           " + strprintf(_("Listen for connections on <port> (default: %u or testnet: %u)"), 8333, 18333) + "\n";
+    strUsage += "  -port=<port>           " + strprintf(_("Listen for connections on <port> (default: %u or testnet: %u)"), 59533, 64533) + "\n";
     strUsage += "  -proxy=<ip:port>       " + _("Connect through SOCKS5 proxy") + "\n";
     strUsage += "  -seednode=<ip>         " + _("Connect to a node to retrieve peer addresses, and disconnect") + "\n";
     strUsage += "  -timeout=<n>           " + strprintf(_("Specify connection timeout in milliseconds (minimum: 1, default: %d)"), DEFAULT_CONNECT_TIMEOUT) + "\n";
@@ -321,7 +321,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "\n" + _("Debugging/Testing options:") + "\n";
     if (GetBoolArg("-help-debug", false))
     {
-        strUsage += "  -checkpoints           " + strprintf(_("Only accept block chain matching built-in checkpoints (default: %u)"), 1) + "\n";
+        strUsage += "  -checkpoints           " + strprintf(_("Only accept block chain matching built-in checkpoints (default: %u)"), 0) + "\n";
         strUsage += "  -dblogsize=<n>         " + strprintf(_("Flush database activity from memory pool to disk log every <n> megabytes (default: %u)"), 100) + "\n";
         strUsage += "  -disablesafemode       " + strprintf(_("Disable safemode, override a real safe mode event (default: %u)"), 0) + "\n";
         strUsage += "  -testsafemode          " + strprintf(_("Force safe mode (default: %u)"), 0) + "\n";
@@ -378,7 +378,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "  -rpcbind=<addr>        " + _("Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6. This option can be specified multiple times (default: bind to all interfaces)") + "\n";
     strUsage += "  -rpcuser=<user>        " + _("Username for JSON-RPC connections") + "\n";
     strUsage += "  -rpcpassword=<pw>      " + _("Password for JSON-RPC connections") + "\n";
-    strUsage += "  -rpcport=<port>        " + strprintf(_("Listen for JSON-RPC connections on <port> (default: %u or testnet: %u)"), 8332, 18332) + "\n";
+    strUsage += "  -rpcport=<port>        " + strprintf(_("Listen for JSON-RPC connections on <port> (default: %u or testnet: %u)"), 59532, 64532) + "\n";
     strUsage += "  -rpcallowip=<ip>       " + _("Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times") + "\n";
     strUsage += "  -rpcthreads=<n>        " + strprintf(_("Set the number of threads to service RPC calls (default: %d)"), 4) + "\n";
     strUsage += "  -rpckeepalive          " + strprintf(_("RPC support for HTTP persistent connections (default: %d)"), 0) + "\n";
@@ -492,7 +492,7 @@ bool InitSanityCheck(void)
 {
     if(!ECC_InitSanityCheck()) {
         InitError("OpenSSL appears to lack support for elliptic curve cryptography. For more "
-                  "information, visit https://en.truthcoin.it/wiki/OpenSSL_and_EC_Libraries");
+                  "information, visit https://en.bitcoin.it/wiki/OpenSSL_and_EC_Libraries");
         return false;
     }
     if (!glibc_sanity_test() || !glibcxx_sanity_test())
@@ -663,7 +663,7 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     // Checkmempool defaults to true in regtest mode
     mempool.setSanityCheck(GetBoolArg("-checkmempool", Params().DefaultCheckMemPool()));
-    Checkpoints::fEnabled = GetBoolArg("-checkpoints", true);
+    Checkpoints::fEnabled = GetBoolArg("-checkpoints", false);
 
     // -par=0 means autodetect, but nScriptCheckThreads==0 means no concurrency
     nScriptCheckThreads = GetArg("-par", DEFAULT_SCRIPTCHECK_THREADS);
