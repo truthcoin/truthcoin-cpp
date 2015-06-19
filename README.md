@@ -1,9 +1,12 @@
 Truthcoin Core integration/staging tree
 =====================================
 
-[![Build Status](https://travis-ci.org/truthcoin/truthcoin.svg?branch=master)](https://travis-ci.org/truthcoin/truthcoin)
+[![Build Status](https://travis-ci.org/truthcoin/truthcoin.svg?branch=master)](https://travis-ci.org/truthcoin/truthcoin)  
 
-[http://www.truthcoin.info](http://www.truthcoin.info)
+This is the actual implementation of [the theoretical work here](https://github.com/psztorc/truthcoin).  
+
+Windows users [click here for an easily installable version of Truthcoin](https://github.com/truthcoin/exe).  
+
 
 What is Truthcoin?
 ----------------
