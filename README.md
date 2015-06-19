@@ -7,6 +7,8 @@ This is the actual implementation of [the theoretical work here](https://github.
 
 Windows users [click here for an easily installable version of Truthcoin](https://github.com/truthcoin/exe).  
 
+Status: Pre-Alpha. Unless you're a blockchain-elite, you should probably go away (or [stick to reading](http://www.truthcoin.info/papers/)).  
+
 
 What is Truthcoin?
 ----------------
