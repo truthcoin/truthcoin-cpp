@@ -911,6 +911,9 @@ unset PKG_CONFIG_LIBDIR
 PKG_CONFIG_LIBDIR="$PKGCONFIG_LIBDIR_TEMP"
 
 ac_configure_args="${ac_configure_args} --disable-shared --with-pic"
+
+AC_CONFIG_SUBDIRS([src/fdlibm])
+AC_CONFIG_SUBDIRS([src/linalg])
 AC_CONFIG_SUBDIRS([src/secp256k1])
 
 AC_OUTPUT

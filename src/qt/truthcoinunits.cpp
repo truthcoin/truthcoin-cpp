@@ -18,9 +18,9 @@ TruthcoinUnits::TruthcoinUnits(QObject *parent):
 QList<TruthcoinUnits::Unit> TruthcoinUnits::availableUnits()
 {
     QList<TruthcoinUnits::Unit> unitlist;
-    unitlist.append(BTC);
-    unitlist.append(mBTC);
-    unitlist.append(uBTC);
+    unitlist.append(CSH);
+    unitlist.append(mCSH);
+    unitlist.append(uCSH);
     return unitlist;
 }
 
@@ -28,9 +28,9 @@ bool TruthcoinUnits::valid(int unit)
 {
     switch(unit)
     {
-    case BTC:
-    case mBTC:
-    case uBTC:
+    case CSH:
+    case mCSH:
+    case uCSH:
         return true;
     default:
         return false;
@@ -41,9 +41,9 @@ QString TruthcoinUnits::name(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("BTC");
-    case mBTC: return QString("mBTC");
-    case uBTC: return QString::fromUtf8("μBTC");
+    case CSH: return QString("CSH");
+    case mCSH: return QString("mCSH");
+    case uCSH: return QString::fromUtf8("μCSH");
     default: return QString("???");
     }
 }
@@ -52,9 +52,9 @@ QString TruthcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("Truthcoins");
-    case mBTC: return QString("Milli-Truthcoins (1 / 1" THIN_SP_UTF8 "000)");
-    case uBTC: return QString("Micro-Truthcoins (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case CSH: return QString("Truthcoins");
+    case mCSH: return QString("Milli-Truthcoins (1 / 1" THIN_SP_UTF8 "000)");
+    case uCSH: return QString("Micro-Truthcoins (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
 }
@@ -63,9 +63,9 @@ qint64 TruthcoinUnits::factor(int unit)
 {
     switch(unit)
     {
-    case BTC:  return 100000000;
-    case mBTC: return 100000;
-    case uBTC: return 100;
+    case CSH:  return 100000000;
+    case mCSH: return 100000;
+    case uCSH: return 100;
     default:   return 100000000;
     }
 }
@@ -74,9 +74,9 @@ int TruthcoinUnits::decimals(int unit)
 {
     switch(unit)
     {
-    case BTC: return 8;
-    case mBTC: return 5;
-    case uBTC: return 2;
+    case CSH: return 8;
+    case mCSH: return 5;
+    case uCSH: return 2;
     default: return 0;
     }
 }
@@ -179,13 +179,19 @@ bool TruthcoinUnits::parse(int unit, const QString &value, CAmount *val_out)
     return ok;
 }
 
+QString TruthcoinUnits::getAmountColumnTitle(const std::string &title, int unit)
+{
+    QString amountTitle(title.c_str());
+    if (TruthcoinUnits::valid(unit))
+        amountTitle += " ("+TruthcoinUnits::name(unit) + ")";
+    return amountTitle;
+}
+
 QString TruthcoinUnits::getAmountColumnTitle(int unit)
 {
     QString amountTitle = QObject::tr("Amount");
     if (TruthcoinUnits::valid(unit))
-    {
         amountTitle += " ("+TruthcoinUnits::name(unit) + ")";
-    }
     return amountTitle;
 }
 

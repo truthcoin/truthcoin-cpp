@@ -10,6 +10,9 @@
 #include "truthcoingui.h"
 #include "clientmodel.h"
 #include "guiutil.h"
+#include "ballotview.h"
+#include "decisionsview.h"
+#include "marketview.h"
 #include "optionsmodel.h"
 #include "overviewpage.h"
 #include "receivecoinsdialog.h"
@@ -53,11 +56,41 @@ WalletView::WalletView(QWidget *parent):
     vbox->addLayout(hbox_buttons);
     transactionsPage->setLayout(vbox);
 
+    ballotPage = new QWidget(this);
+    QVBoxLayout *bvbox = new QVBoxLayout();
+    QHBoxLayout *bhbox_buttons = new QHBoxLayout();
+    ballotView = new BallotView(this);
+    bvbox->addWidget(ballotView);
+    bhbox_buttons->addStretch();
+    bvbox->addLayout(bhbox_buttons);
+    ballotPage->setLayout(bvbox);
+
+    decisionsPage = new QWidget(this);
+    QVBoxLayout *dvbox = new QVBoxLayout();
+    QHBoxLayout *dhbox_buttons = new QHBoxLayout();
+    decisionsView = new DecisionsView(this);
+    dvbox->addWidget(decisionsView);
+    dhbox_buttons->addStretch();
+    dvbox->addLayout(dhbox_buttons);
+    decisionsPage->setLayout(dvbox);
+
+    marketPage = new QWidget(this);
+    QVBoxLayout *mvbox = new QVBoxLayout();
+    QHBoxLayout *mhbox_buttons = new QHBoxLayout();
+    marketView = new MarketView(this);
+    mvbox->addWidget(marketView);
+    mhbox_buttons->addStretch();
+    mvbox->addLayout(mhbox_buttons);
+    marketPage->setLayout(mvbox);
+
     receiveCoinsPage = new ReceiveCoinsDialog();
     sendCoinsPage = new SendCoinsDialog();
 
     addWidget(overviewPage);
     addWidget(transactionsPage);
+    addWidget(marketPage);
+    addWidget(decisionsPage);
+    addWidget(ballotPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
 
@@ -111,6 +144,9 @@ void WalletView::setWalletModel(WalletModel *walletModel)
     this->walletModel = walletModel;
 
     // Put transaction list in tabs
+    ballotView->setModel(walletModel);
+    decisionsView->setModel(walletModel);
+    marketView->setModel(walletModel);
     transactionView->setModel(walletModel);
     overviewPage->setWalletModel(walletModel);
     receiveCoinsPage->setModel(walletModel);
@@ -163,6 +199,21 @@ void WalletView::gotoOverviewPage()
 void WalletView::gotoHistoryPage()
 {
     setCurrentWidget(transactionsPage);
+}
+
+void WalletView::gotoBallotPage()
+{
+    setCurrentWidget(ballotPage);
+}
+
+void WalletView::gotoDecisionsPage()
+{
+    setCurrentWidget(decisionsPage);
+}
+
+void WalletView::gotoMarketPage()
+{
+    setCurrentWidget(marketPage);
 }
 
 void WalletView::gotoReceiveCoinsPage()

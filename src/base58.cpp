@@ -221,7 +221,10 @@ public:
 
 bool CTruthcoinAddress::Set(const CKeyID& id)
 {
-    SetData(Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
+    const std::vector<unsigned char> &pubkeyaddr = (is_votecoin)
+            ? Params().Base58Prefix(CChainParams::VPUBKEY_ADDRESS)
+            : Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+    SetData(pubkeyaddr, &id, 20);
     return true;
 }
 
@@ -244,8 +247,10 @@ bool CTruthcoinAddress::IsValid() const
 bool CTruthcoinAddress::IsValid(const CChainParams& params) const
 {
     bool fCorrectSize = vchData.size() == 20;
-    bool fKnownVersion = vchVersion == params.Base58Prefix(CChainParams::PUBKEY_ADDRESS) ||
-                         vchVersion == params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
+    bool fKnownVersion = 
+        ((!is_votecoin) && (vchVersion == params.Base58Prefix(CChainParams::PUBKEY_ADDRESS)))
+        || ((is_votecoin) && (vchVersion == params.Base58Prefix(CChainParams::VPUBKEY_ADDRESS)))
+        || (vchVersion == params.Base58Prefix(CChainParams::SCRIPT_ADDRESS));
     return fCorrectSize && fKnownVersion;
 }
 
@@ -265,7 +270,10 @@ CTxDestination CTruthcoinAddress::Get() const
 
 bool CTruthcoinAddress::GetKeyID(CKeyID& keyID) const
 {
-    if (!IsValid() || vchVersion != Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS))
+    if (!IsValid())
+        return false;
+    if ((vchVersion != Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS))
+        && (vchVersion != Params().Base58Prefix(CChainParams::VPUBKEY_ADDRESS)))
         return false;
     uint160 id;
     memcpy(&id, &vchData[0], 20);

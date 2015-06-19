@@ -1,4 +1,4 @@
-DIST_SUBDIRS = secp256k1
+DIST_SUBDIRS = fdlibm linalg secp256k1
 AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS)
 
 
@@ -20,7 +20,7 @@ endif
 TRUTHCOIN_CONFIG_INCLUDES=-I$(builddir)/config
 TRUTHCOIN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
-TRUTHCOIN_INCLUDES += -I$(srcdir)/secp256k1/include
+TRUTHCOIN_INCLUDES += -I$(srcdir)/fdlibm/include -I$(srcdir)/linalg/include -I$(srcdir)/secp256k1/include
 
 LIBTRUTHCOIN_SERVER=libtruthcoin_server.a
 LIBTRUTHCOIN_WALLET=libtruthcoin_wallet.a
@@ -30,10 +30,19 @@ LIBTRUTHCOIN_UTIL=libtruthcoin_util.a
 LIBTRUTHCOIN_CRYPTO=crypto/libtruthcoin_crypto.a
 LIBTRUTHCOIN_UNIVALUE=univalue/libtruthcoin_univalue.a
 LIBTRUTHCOINQT=qt/libtruthcoinqt.a
+LIBFDLIBM=fdlibm/libfdlibm.la
+LIBLINALG=linalg/liblinalg.la
 LIBSECP256K1=secp256k1/libsecp256k1.la
+
+$(LIBFDLIBM): $(wildcard fdlibm/src/*) $(wildcard fdlibm/include/*)
+	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
+
+$(LIBLINALG): $(wildcard linalg/src/*) $(wildcard lingalg/include/*)
+	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
+
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
@@ -108,6 +117,7 @@ TRUTHCOIN_CORE_H = \
   noui.h \
   pow.h \
   primitives/block.h \
+  primitives/market.h \
   primitives/transaction.h \
   protocol.h \
   pubkey.h \
@@ -240,6 +250,7 @@ libtruthcoin_common_a_SOURCES = \
   coins.cpp \
   compressor.cpp \
   primitives/block.cpp \
+  primitives/market.cpp \
   primitives/transaction.cpp \
   core_read.cpp \
   core_write.cpp \
@@ -301,6 +312,8 @@ truthcoind_LDADD = \
   $(LIBTRUTHCOIN_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBMEMENV) \
+  $(LIBFDLIBM) \
+  $(LIBLINALG) \
   $(LIBSECP256K1)
 
 if ENABLE_WALLET
@@ -337,6 +350,8 @@ truthcoin_tx_LDADD = \
   $(LIBTRUTHCOIN_COMMON) \
   $(LIBTRUTHCOIN_UTIL) \
   $(LIBTRUTHCOIN_CRYPTO) \
+  $(LIBFDLIBM) \
+  $(LIBLINALG) \
   $(LIBSECP256K1) \
   $(BOOST_LIBS) \
   $(CRYPTO_LIBS)
@@ -362,6 +377,7 @@ libtruthcoinconsensus_la_SOURCES = \
   eccryptoverify.cpp \
   ecwrapper.cpp \
   hash.cpp \
+  primitives/market.cpp \
   primitives/transaction.cpp \
   pubkey.cpp \
   script/truthcoinconsensus.cpp \
@@ -376,11 +392,13 @@ if GLIBC_BACK_COMPAT
 endif
 
 libtruthcoinconsensus_la_LDFLAGS = -no-undefined $(RELDFLAGS)
-libtruthcoinconsensus_la_LIBADD = $(CRYPTO_LIBS)
+libtruthcoinconsensus_la_LIBADD = $(BOOST_LIBS) $(CRYPTO_LIBS)
 libtruthcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -DBUILD_TRUTHCOIN_INTERNAL
 if USE_LIBSECP256K1
 libtruthcoinconsensus_la_LIBADD += secp256k1/libsecp256k1.la
 endif
+libtruthcoinconsensus_la_LIBADD += linalg/liblinalg.la
+libtruthcoinconsensus_la_LIBADD += fdlibm/libfdlibm.la
 endif
 
 CLEANFILES = leveldb/libleveldb.a leveldb/libmemenv.a *.gcda *.gcno
@@ -391,6 +409,8 @@ EXTRA_DIST = leveldb
 
 clean-local:
 	-$(MAKE) -C leveldb clean
+	-$(MAKE) -C fdlibm clean
+	-$(MAKE) -C linalg clean
 	-$(MAKE) -C secp256k1 clean
 	rm -f leveldb/*/*.gcno leveldb/helpers/memenv/*.gcno
 	-rm -f config.h

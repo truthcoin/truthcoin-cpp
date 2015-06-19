@@ -8,6 +8,7 @@
 
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "primitives/market.h"
 
 namespace {
 inline std::string ValueString(const std::vector<unsigned char>& vch)
@@ -154,6 +155,9 @@ const char* GetOpName(opcodetype opcode)
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 
+    // market
+    case OP_MARKET                 : return "OP_MARKET";
+
     // Note:
     //  The template matching params OP_SMALLDATA/etc are defined in opcodetype enum
     //  as kind of implementation hack, they are *NOT* real opcodes.  If found in real
@@ -219,6 +223,58 @@ bool CScript::IsPayToScriptHash() const
             this->at(0) == OP_HASH160 &&
             this->at(1) == 0x14 &&
             this->at(22) == OP_EQUAL);
+}
+
+bool CScript::IsMarketScript(vector<unsigned char> &hashBytes) const
+{
+    bool ret = false;
+
+    if (size() < 2)
+       return ret;
+
+    if (at(size()-1) != OP_MARKET)
+       return ret;
+
+    marketObj *obj = marketObjCtr(*this);
+    if (!obj)
+       return ret;
+
+    if (obj->marketop == 'B') {
+       ret = true;
+    }
+    else
+    if (obj->marketop == 'D') {
+       marketDecision *ptr = (marketDecision *) obj; 
+       hashBytes = vector<unsigned char> (ptr->keyID.begin(), ptr->keyID.end());
+       delete ptr;
+       ret = true;
+    }
+    else
+    if (obj->marketop == 'M') {
+       marketMarket *ptr = (marketMarket *) obj; 
+       hashBytes = vector<unsigned char> (ptr->keyID.begin(), ptr->keyID.end());
+       delete ptr;
+       ret = true;
+    }
+    else
+    if (obj->marketop == 'T') {
+       marketTrade *ptr = (marketTrade *) obj; 
+       hashBytes = vector<unsigned char> (ptr->keyID.begin(), ptr->keyID.end());
+       delete ptr;
+       ret = true;
+    }
+    else
+    if (obj->marketop == 'V') {
+       ret = true;
+    }
+
+    return ret;
+}
+
+bool CScript::IsMarketScript(void) const
+{
+    vector<unsigned char> hashBytes;
+    return IsMarketScript(hashBytes);
 }
 
 bool CScript::IsPushOnly() const

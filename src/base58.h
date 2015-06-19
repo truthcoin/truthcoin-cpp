@@ -109,14 +109,15 @@ public:
     bool IsValid() const;
     bool IsValid(const CChainParams &params) const;
 
-    CTruthcoinAddress() {}
-    CTruthcoinAddress(const CTxDestination &dest) { Set(dest); }
-    CTruthcoinAddress(const std::string& strAddress) { SetString(strAddress); }
-    CTruthcoinAddress(const char* pszAddress) { SetString(pszAddress); }
+    CTruthcoinAddress(): is_votecoin(0) {}
+    CTruthcoinAddress(const CTxDestination &dest): is_votecoin(0) { Set(dest); }
+    CTruthcoinAddress(const std::string& strAddress): is_votecoin(0) { SetString(strAddress); }
+    CTruthcoinAddress(const char* pszAddress): is_votecoin(0) { SetString(pszAddress); }
 
     CTxDestination Get() const;
     bool GetKeyID(CKeyID &keyID) const;
     bool IsScript() const;
+    uint8_t is_votecoin;
 };
 
 /**

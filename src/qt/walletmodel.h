@@ -17,6 +17,10 @@
 #include <QObject>
 
 class AddressTableModel;
+class MarketBranchTableModel;
+class MarketDecisionTableModel;
+class MarketMarketTableModel;
+class MarketTradeTableModel;
 class OptionsModel;
 class RecentRequestsTableModel;
 class TransactionTableModel;
@@ -124,6 +128,10 @@ public:
 
     OptionsModel *getOptionsModel();
     AddressTableModel *getAddressTableModel();
+    MarketBranchTableModel *getMarketBranchTableModel();
+    MarketDecisionTableModel *getMarketDecisionTableModel();
+    MarketMarketTableModel *getMarketMarketTableModel();
+    MarketTradeTableModel *getMarketTradeTableModel();
     TransactionTableModel *getTransactionTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
 
@@ -206,6 +214,10 @@ private:
     OptionsModel *optionsModel;
 
     AddressTableModel *addressTableModel;
+    MarketBranchTableModel *marketBranchTableModel;
+    MarketDecisionTableModel *marketDecisionTableModel;
+    MarketMarketTableModel *marketMarketTableModel;
+    MarketTradeTableModel *marketTradeTableModel;
     TransactionTableModel *transactionTableModel;
     RecentRequestsTableModel *recentRequestsTableModel;
 

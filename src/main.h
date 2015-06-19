@@ -16,6 +16,7 @@
 #include "chainparams.h"
 #include "coins.h"
 #include "primitives/block.h"
+#include "primitives/market.h"
 #include "primitives/transaction.h"
 #include "net.h"
 #include "pow.h"
@@ -40,6 +41,7 @@
 
 class CBlockIndex;
 class CBlockTreeDB;
+class CMarketTreeDB;
 class CBloomFilter;
 class CInv;
 class CScriptCheck;
@@ -71,7 +73,8 @@ static const unsigned int BLOCKFILE_CHUNK_SIZE = 0x1000000; // 16 MiB
 /** The pre-allocation chunk size for rev?????.dat files (since 0.8) */
 static const unsigned int UNDOFILE_CHUNK_SIZE = 0x100000; // 1 MiB
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
-static const int COINBASE_MATURITY = 100;
+// static const int COINBASE_MATURITY = 100;
+static const int COINBASE_MATURITY = 1;
 /** Threshold for nLockTime: below this value it is interpreted as block number, otherwise as UNIX timestamp. */
 static const unsigned int LOCKTIME_THRESHOLD = 500000000; // Tue Nov  5 00:53:20 1985 UTC
 /** Maximum number of script-checking threads allowed */
@@ -195,6 +198,8 @@ CAmount GetBlockValue(int nHeight, const CAmount& nFees);
 
 /** Create a new block index entry for a given block hash */
 CBlockIndex * InsertBlockIndex(uint256 hash);
+/** Create a new market entry */
+void InsertMarketIndex(const uint256 &txhash, marketObj *);
 /** Abort with a message */
 bool AbortNode(const std::string &msg, const std::string &userMessage="");
 /** Get statistics from node state */
@@ -241,7 +246,6 @@ struct CDiskTxPos : public CDiskBlockPos
         nTxOffset = 0;
     }
 };
-
 
 CAmount GetMinRelayFee(const CTransaction& tx, unsigned int nBytes, bool fAllowFree);
 
@@ -513,6 +517,14 @@ extern CCoinsViewCache *pcoinsTip;
 
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern CBlockTreeDB *pblocktree;
+
+/** Global variable that points to the active market tree (protected by cs_main) */
+extern CMarketTreeDB *pmarkettree;
+
+/** Global variable */
+class CCoinsViewDB;
+extern CCoinsViewDB *pcoinsdbview;
+
 
 struct CBlockTemplate
 {

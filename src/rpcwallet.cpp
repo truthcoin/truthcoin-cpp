@@ -11,6 +11,7 @@
 #include "init.h"
 #include "net.h"
 #include "netbase.h"
+#include "primitives/market.h"
 #include "timedata.h"
 #include "util.h"
 #include "utilmoneystr.h"
@@ -19,6 +20,8 @@
 
 #include <stdint.h>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/assign/list_of.hpp>
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_value.h"
@@ -28,6 +31,12 @@ using namespace json_spirit;
 
 int64_t nWalletUnlockTime;
 static CCriticalSection cs_nWalletUnlockTime;
+
+extern std::map<uint256, marketBranch *> marketBranches;
+extern std::map<uint256, uint256> marketDecisionToBranch;
+extern std::map<uint256, uint256> marketOutcomeToBranch;
+extern std::map<uint256, uint256> marketMarketToBranch;
+
 
 std::string HelpRequiringPassphrase()
 {
@@ -309,7 +318,11 @@ Value getaddressesbyaccount(const Array& params, bool fHelp)
     return ret;
 }
 
-void SendMoney(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew)
+void SendMoney(
+	const std::string &strAccount,
+	const CTxDestination &address,
+    CAmount nValue,
+    CWalletTx& wtxNew)
 {
     // Check amount
     if (nValue <= 0)
@@ -332,15 +345,30 @@ void SendMoney(const CTxDestination &address, CAmount nValue, CWalletTx& wtxNew)
     // Create and send the transaction
     CReserveKey reservekey(pwalletMain);
     CAmount nFeeRequired;
-    if (!pwalletMain->CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired, strError))
-    {
+    CTxDestination txDestChange;
+    bool rc = pwalletMain->CreateTransaction(scriptPubKey, strAccount, nValue, wtxNew,
+        reservekey, nFeeRequired, strError, txDestChange);
+    if (!rc) {
         if (nValue + nFeeRequired > pwalletMain->GetBalance())
-            strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
+            strError = strprintf(
+                "Error: This transaction requires a transaction fee of at least"
+                " %s because of its amount, complexity, or use of recently "
+                " received funds!", FormatMoney(nFeeRequired));
         LogPrintf("SendMoney() : %s\n", strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
-    if (!pwalletMain->CommitTransaction(wtxNew, reservekey))
-        throw JSONRPCError(RPC_WALLET_ERROR, "Error: The transaction was rejected! This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
+
+    rc = pwalletMain->CommitTransaction(wtxNew, reservekey);
+    if (!rc) {
+        throw JSONRPCError(RPC_WALLET_ERROR,
+            "Error: The transaction was rejected! This might happen if some of the"
+            " coins in your wallet were already spent, such as if you used a copy"
+            " of wallet.dat and coins were spent in the copy but not marked as spent here.");
+    }
+
+    // If the account was specified, set the change to be in the same account
+    if (strAccount.size())
+        pwalletMain->SetAddressBook(txDestChange, strAccount, "receive");
 }
 
 Value sendtoaddress(const Array& params, bool fHelp)
@@ -382,7 +410,8 @@ Value sendtoaddress(const Array& params, bool fHelp)
 
     EnsureWalletIsUnlocked();
 
-    SendMoney(address.Get(), nAmount, wtx);
+    string strAccount;
+    SendMoney(strAccount, address.Get(), nAmount, wtx);
 
     return wtx.GetHash().GetHex();
 }
@@ -417,16 +446,35 @@ Value listaddressgroupings(const Array& params, bool fHelp)
     BOOST_FOREACH(set<CTxDestination> grouping, pwalletMain->GetAddressGroupings())
     {
         Array jsonGrouping;
-        BOOST_FOREACH(CTxDestination address, grouping)
+        BOOST_FOREACH(CTxDestination txdest, grouping)
         {
-            Array addressInfo;
-            addressInfo.push_back(CTruthcoinAddress(address).ToString());
-            addressInfo.push_back(ValueFromAmount(balances[address]));
-            {
-                LOCK(pwalletMain->cs_wallet);
-                if (pwalletMain->mapAddressBook.find(CTruthcoinAddress(address).Get()) != pwalletMain->mapAddressBook.end())
-                    addressInfo.push_back(pwalletMain->mapAddressBook.find(CTruthcoinAddress(address).Get())->second.name);
+            bool is_votecoin = 0;
+            string strAccount;
+            CTruthcoinAddress addr0(txdest);
+            LOCK(pwalletMain->cs_wallet);
+            std::map<CTxDestination, CAddressBookData>::const_iterator addrit
+                = pwalletMain->mapAddressBook.find(addr0.Get());
+            if (addrit != pwalletMain->mapAddressBook.end()) {
+                strAccount = addrit->second.name;
+                if (strAccount.size() == 64) {
+                    uint256 branchid(ParseHex(strAccount));
+                    std::reverse(branchid.begin(), branchid.end());
+                    std::map<uint256, marketBranch *>::const_iterator bit
+                        = marketBranches.find(branchid);
+                    if (bit != marketBranches.end())
+                        is_votecoin = 1;
+                }
             }
+            CTruthcoinAddress addr;
+            addr.is_votecoin = is_votecoin;
+            if (!addr.Set(txdest))
+                continue;
+
+            Array addressInfo;
+            addressInfo.push_back(addr.ToString());
+            addressInfo.push_back(ValueFromAmount(balances[txdest]));
+            if (strAccount.size())
+                addressInfo.push_back(strAccount);
             jsonGrouping.push_back(addressInfo);
         }
         jsonGroupings.push_back(jsonGrouping);
@@ -537,7 +585,6 @@ Value getreceivedbyaddress(const Array& params, bool fHelp)
     return  ValueFromAmount(nAmount);
 }
 
-
 Value getreceivedbyaccount(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 2)
@@ -571,16 +618,19 @@ Value getreceivedbyaccount(const Array& params, bool fHelp)
 
     // Tally
     CAmount nAmount = 0;
-    for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
+    map<uint256, CWalletTx>::iterator it;
+    for (it=pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
     {
         const CWalletTx& wtx = (*it).second;
-        if (wtx.IsCoinBase() || !IsFinalTx(wtx))
+        if (!IsFinalTx(wtx))
             continue;
 
         BOOST_FOREACH(const CTxOut& txout, wtx.vout)
         {
             CTxDestination address;
-            if (ExtractDestination(txout.scriptPubKey, address) && IsMine(*pwalletMain, address) && setAddress.count(address))
+            if (ExtractDestination(txout.scriptPubKey, address)
+                    && IsMine(*pwalletMain, address)
+                    && setAddress.count(address))
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
                     nAmount += txout.nValue;
         }
@@ -651,7 +701,7 @@ Value getbalance(const Array& params, bool fHelp)
         );
 
     if (params.size() == 0)
-        return  ValueFromAmount(pwalletMain->GetBalance());
+        return ValueFromAmount(pwalletMain->GetBalance());
 
     int nMinDepth = 1;
     if (params.size() > 1)
@@ -686,7 +736,7 @@ Value getbalance(const Array& params, bool fHelp)
                 nBalance -= s.amount;
             nBalance -= allFee;
         }
-        return  ValueFromAmount(nBalance);
+        return ValueFromAmount(nBalance);
     }
 
     string strAccount = AccountFromValue(params[0]);
@@ -823,7 +873,7 @@ Value sendfrom(const Array& params, bool fHelp)
     if (nAmount > nBalance)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds");
 
-    SendMoney(address.Get(), nAmount, wtx);
+    SendMoney(strAccount, address.Get(), nAmount, wtx);
 
     return wtx.GetHash().GetHex();
 }
@@ -899,10 +949,12 @@ Value sendmany(const Array& params, bool fHelp)
     // Send
     CReserveKey keyChange(pwalletMain);
     CAmount nFeeRequired = 0;
-    string strFailReason;
-    bool fCreated = pwalletMain->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, strFailReason);
+    string strError;
+    CTxDestination txDestChange;
+    bool fCreated = pwalletMain->CreateTransaction(vecSend, strAccount, wtx,
+        keyChange, nFeeRequired, strError, txDestChange);
     if (!fCreated)
-        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strFailReason);
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
     if (!pwalletMain->CommitTransaction(wtx, keyChange))
         throw JSONRPCError(RPC_WALLET_ERROR, "Transaction commit failed");
 
@@ -989,9 +1041,10 @@ Value ListReceived(const Array& params, bool fByAccounts)
 
     // Tally
     map<CTruthcoinAddress, tallyitem> mapTally;
-    for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
+    map<uint256, CWalletTx>::iterator it;
+    for(it=pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
     {
-        const CWalletTx& wtx = (*it).second;
+        const CWalletTx& wtx = it->second;
 
         if (wtx.IsCoinBase() || !IsFinalTx(wtx))
             continue;
@@ -1963,7 +2016,7 @@ Value settxfee(const Array& params, bool fHelp)
             "settxfee amount\n"
             "\nSet the transaction fee per kB.\n"
             "\nArguments:\n"
-            "1. amount         (numeric, required) The transaction fee in BTC/kB rounded to the nearest 0.00000001\n"
+            "1. amount         (numeric, required) The transaction fee in CSH/kB rounded to the nearest 0.00000001\n"
             "\nResult\n"
             "true|false        (boolean) Returns true if successful\n"
             "\nExamples:\n"
@@ -2014,3 +2067,1496 @@ Value getwalletinfo(const Array& params, bool fHelp)
         obj.push_back(Pair("unlocked_until", nWalletUnlockTime));
     return obj;
 }
+
+static inline uint64_t rounduint64(double d)
+{
+    return (uint64_t)(d + 0.5);
+}
+
+static inline int64_t roundint64(double d)
+{
+    return (int64_t) ((d > 0.0)? (d + 0.5): (d - 0.5));
+}
+
+int64_t int64FromValue(const Value& value)
+{
+    double dAmount = value.get_real();
+    return roundint64(dAmount * COIN);
+}
+
+uint64_t uint64FromValue(const Value& value, bool allow_zero)
+{
+    double dAmount = value.get_real();
+    if (dAmount < 0.0)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Negative amount");
+    if ((!allow_zero) && (dAmount == 0.0))
+        throw JSONRPCError(RPC_TYPE_ERROR, "Zero amount");
+    return rounduint64(dAmount * COIN);
+}
+
+Value listbranches(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "listbranches"
+        "\nReturns an array of all branches.";
+
+    if (fHelp || (params.size() > 0))
+        throw runtime_error(strHelp);
+
+    Array array;
+    std::map<uint256, marketBranch *>::const_iterator bit;
+    for(bit=marketBranches.begin(); bit != marketBranches.end(); bit++) {
+        const marketBranch *obj = bit->second;
+        Object item;
+        item.push_back(Pair("branchid", bit->first.ToString()));
+        item.push_back(Pair("txid", obj->txid.ToString()));
+        item.push_back(Pair("name", obj->name));
+        item.push_back(Pair("description", obj->description));
+        item.push_back(Pair("baselistingfee", ValueFromAmount(obj->baseListingFee)));
+        item.push_back(Pair("freedecisions", (int)obj->freeDecisions));
+        item.push_back(Pair("targetdecisions", (int)obj->targetDecisions));
+        item.push_back(Pair("maxdecisions", (int)obj->maxDecisions));
+        item.push_back(Pair("mintradingfee", ValueFromAmount(obj->minTradingFee)));
+        item.push_back(Pair("tau", (int)obj->tau));
+        item.push_back(Pair("ballottime", (int)obj->ballotTime));
+        item.push_back(Pair("unsealtime", (int)obj->unsealTime));
+        item.push_back(Pair("consensusthreshold", ValueFromAmount(obj->consensusThreshold)));
+        array.push_back(item);
+    }
+    return array;
+}
+
+Value listdecisions(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "listdecisions branchid"
+        "\nReturns an array of all decisions within the branch."
+        "\nArguments:"
+        "\n1. branchid     (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+
+    Object entry;
+    entry.push_back(Pair("branchid", bit->first.ToString()));
+
+    Array array;
+    std::map<uint256, marketDecision *>::const_iterator dit;
+    for(dit=branch->decisions.begin(); dit != branch->decisions.end(); dit++) {
+        const marketDecision *obj = dit->second;
+        Object item;
+        item.push_back(Pair("decisionid", dit->first.ToString()));
+        item.push_back(Pair("txid", obj->txid.ToString()));
+        CTruthcoinAddress addr;
+        if (addr.Set(obj->keyID))
+            item.push_back(Pair("keyID", addr.ToString()));
+        item.push_back(Pair("branchid", obj->branchid.ToString()));
+        item.push_back(Pair("prompt", obj->prompt));
+        item.push_back(Pair("eventoverby", (int)obj->eventOverBy));
+        item.push_back(Pair("isScaled", (int)obj->isScaled));
+        item.push_back(Pair("min", ValueFromAmount(obj->min)));
+        item.push_back(Pair("max", ValueFromAmount(obj->max)));
+        item.push_back(Pair("answerOptionality", (int)obj->answerOptionality));
+        array.push_back(item);
+    }
+    entry.push_back(Pair("decisions", array));
+
+    return entry;
+}
+
+Value listmarkets(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "listmarkets decisionid"
+        "\nReturns an array of all markets depending on the decision."
+        "\nArguments:"
+        "\n1. decisionid      (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 decisionid;
+    decisionid.SetHex(params[0].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketDecisionToBranch.find(decisionid);
+    if (it == marketDecisionToBranch.end()) {
+        string strError = std::string("Error: branchid for ")
+            + decisionid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->second);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->first.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+
+    Object entry;
+    entry.push_back(Pair("decisionid", decisionid.ToString()));
+
+    Array array;
+    std::map<uint256, marketMarket *>::const_iterator mit;
+    for(mit=branch->markets.begin(); mit != branch->markets.end(); mit++) {
+        const marketMarket *obj = mit->second;
+        const vector<uint256> &decisionIDs = obj->decisionIDs;
+        bool has_decision = false;
+        for(uint32_t i=0; i < decisionIDs.size(); i++)
+            if (decisionIDs[i] == decisionid)
+                has_decision = true;
+        if (!has_decision)
+            continue;
+        Object item;
+        item.push_back(Pair("marketid", mit->first.ToString()));
+        item.push_back(Pair("txid", obj->txid.ToString()));
+        CTruthcoinAddress addr;
+        if (addr.Set(obj->keyID))
+            item.push_back(Pair("keyID", addr.ToString()));
+        item.push_back(Pair("B", ValueFromAmount(obj->B)));
+        item.push_back(Pair("tradingFee", ValueFromAmount(obj->tradingFee)));
+        item.push_back(Pair("maxCommission", ValueFromAmount(obj->maxCommission)));
+        item.push_back(Pair("title", obj->title));
+        item.push_back(Pair("description", obj->description));
+        item.push_back(Pair("tags", obj->tags));
+        item.push_back(Pair("maturation", (int)obj->maturation));
+        Array decision_array;
+        for(uint32_t i=0; i < decisionIDs.size(); i++)
+            decision_array.push_back(decisionIDs[i].ToString());
+        item.push_back(Pair("decisionIDs", decision_array));
+        array.push_back(item);
+    }
+    entry.push_back(Pair("markets", array));
+
+    return entry;
+}
+
+Value listoutcomes(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "listoutcomes branchid"
+        "\nReturns an array of all outcomes in the branch."
+        "\nArguments:"
+        "\n1. branchid        (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+
+    Object entry;
+    entry.push_back(Pair("branchid", branchid.ToString()));
+
+    Array array;
+    std::map<uint256, marketOutcome *>::const_iterator oit;
+    for(oit=branch->outcomes.begin(); oit != branch->outcomes.end(); oit++) {
+        Object item;
+        item.push_back(Pair("outcomeid", oit->first.ToString()));
+        array.push_back(item);
+    }
+    entry.push_back(Pair("outcomes", array));
+
+    return entry;
+}
+
+Value listtrades(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "listtrades marketid"
+        "\nReturns an array of all trades for the market."
+        "\nArguments:"
+        "\n1. tradeid      (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 marketid;
+    marketid.SetHex(params[0].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketMarketToBranch.find(marketid);
+    if (it == marketMarketToBranch.end()) {
+        string strError = std::string("Error: branchid for ")
+            + marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->second);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->first.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+
+    Object entry;
+    entry.push_back(Pair("marketid", marketid.ToString()));
+
+    Array array;
+    std::map<uint256, marketMarket *>::const_iterator mit
+        = branch->markets.find(marketid);
+    if (mit != branch->markets.end()) {
+        std::map<uint256, marketTrade *>::const_iterator tit;
+        for(tit=mit->second->trades.begin(); tit != mit->second->trades.end(); tit++) {
+            const marketTrade *obj = tit->second;
+            if (obj->marketid != marketid)
+                continue;
+            Object item;
+            item.push_back(Pair("tradeid", tit->first.ToString()));
+            item.push_back(Pair("txid", obj->txid.ToString()));
+            CTruthcoinAddress addr;
+            if (addr.Set(obj->keyID))
+                item.push_back(Pair("keyID", addr.ToString()));
+            item.push_back(Pair("marketid", obj->marketid.ToString()));
+            item.push_back(Pair("isbuy", (obj->isBuy)? "buy":"sell"));
+            item.push_back(Pair("nshares", ValueFromAmount(obj->nShares)));
+            item.push_back(Pair("price", ValueFromAmount(obj->price)));
+            item.push_back(Pair("decision_state", (int)obj->decisionState));
+            item.push_back(Pair("nonce", (int)obj->nonce));
+            array.push_back(item);
+        }
+    }
+    entry.push_back(Pair("trades", array));
+
+    return entry;
+}
+
+Value listvotes(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "listvotes branchid height "
+        "\nReturns an array of all votes for the ballot."
+        "\nArguments:"
+        "\n1. branchid     (uint256 string)"
+        "\n2. height       (numeric)";
+
+    if (fHelp || (params.size() < 2))
+        throw runtime_error(strHelp);
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
+    uint32_t height = (unsigned int)params[1].get_int();
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+
+    if (height % branch->tau != 0) {
+        string strError = std::string("Error: invaid height ")
+            + params[1].get_str() + " for the branch's tau!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    Object entry;
+    entry.push_back(Pair("branchid", branchid.ToString()));
+    entry.push_back(Pair("height", (int)height));
+
+    Array array;
+    std::map<uint32_t, marketBallot *>::const_iterator bait
+        = branch->ballots.find(height);
+    if (bait != branch->ballots.end()) {
+        const marketBallot *ballot = bait->second;
+        std::map<uint256, marketVote *>::const_iterator vit;
+        for(vit=ballot->votes.begin(); vit != ballot->votes.end(); vit++) {
+            const marketVote *obj = vit->second;
+            Object item;
+            item.push_back(Pair("voteid", vit->first.ToString()));
+            item.push_back(Pair("txid", obj->txid.ToString()));
+            item.push_back(Pair("NA", ValueFromAmount(obj->NA)));
+            Array decision_array;
+            for(uint32_t i=0; i < obj->decisionIDs.size(); i++) {
+                Object decision;
+                decision.push_back(Pair("decisionid", obj->decisionIDs[i].ToString()));
+                if (i < obj->decisionVotes.size())
+				    decision.push_back(Pair("vote", ValueFromAmount(obj->decisionVotes[i])));
+                decision_array.push_back(decision);
+            }
+            array.push_back(item);
+        }
+    }
+    entry.push_back(Pair("votes", array));
+
+    return entry;
+}
+
+Value createbranch(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "createbranch name description baselistingfee"
+        " freedecisions targetdecisions maxdecisions"
+        " mintradingfee"
+        " tau ballottime unsealtime"
+        " consensusthreshold"
+        "\nCreates a new branch."
+        "\n1. name                (string) the name of the branch"
+        "\n2. description         (string) a short description of the branch"
+        "\n3. baselistingfee      (numeric)"
+        "\n4. freedecisions       (numeric < 65536)"
+        "\n5. targetdecisions     (numeric < 65536)"
+        "\n6. maxdecisions        (numeric < 65536)"
+        "\n7. mintradingfee       (numeric)"
+        "\n8. tau                 (block number < 65536)"
+        "\n9. ballottime          (block number < 65536)"
+        "\n10. unsealtime         (block number < 65536)"
+        "\n11. consensusthreshold (numeric)";
+
+    if (fHelp || (params.size() != 11))
+        throw runtime_error(strHelp);
+
+    EnsureWalletIsUnlocked();
+
+    struct marketBranch obj;
+    obj.name = params[0].get_str();
+    obj.description = params[1].get_str();
+    obj.baseListingFee = uint64FromValue(params[2], false);
+    obj.freeDecisions = (uint16_t)params[3].get_int();
+    obj.targetDecisions = (uint16_t)params[4].get_int();
+    obj.maxDecisions = (uint16_t)params[5].get_int();
+    obj.minTradingFee = uint64FromValue(params[6], false);
+    obj.tau = (uint16_t)params[7].get_int();
+    obj.ballotTime = (uint16_t)params[8].get_int();
+    obj.unsealTime = (uint16_t)params[9].get_int();
+    obj.consensusThreshold = uint64FromValue(params[10], false);
+
+    // double-check object is not a duplicate
+    uint256 objid = obj.GetHash();
+    if (marketBranches.find(objid) != marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + objid.ToString() + " already exists!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // ensure unlocked wallet
+    string strError;
+    if (pwalletMain->IsLocked()) {
+        strError = "Error: Wallet locked, unable to create transaction!";
+        LogPrintf("createbranch() : %s", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+
+    // create output script
+    CScript scriptPubKey = obj.GetScript();
+
+    // key to send the change to
+    CReserveKey reservekey(pwalletMain);
+
+    // fee to create branch
+    CAmount nFeeRequired;
+    CAmount nAmount = (int64_t) rounduint64(0.01*COIN);
+
+    string strAccount;
+    CWalletTx wtx;
+    CTxDestination txDestChange;
+    if (!pwalletMain->CreateTransaction(scriptPubKey, strAccount, nAmount, wtx,
+        reservekey, nFeeRequired, strError, txDestChange)) 
+    {
+        if (nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf(
+                "Error: This transaction requires a transaction fee of at least %s!",
+                FormatMoney(nFeeRequired));
+        LogPrintf("createbranch() : %s\n", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtx, reservekey))
+        throw JSONRPCError(RPC_WALLET_ERROR,
+            "Error: The createbranch transaction was rejected!");
+
+    Object entry;
+    entry.push_back(Pair("txid", wtx.GetHash().ToString()));
+    entry.push_back(Pair("branchid", objid.ToString()));
+    return entry;
+}
+
+Value createdecision(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "createdecision branchid prompt address eventoverby [scaled min max]"
+        "\nCreates a new decision within the branch."
+        "\n1. address             (base58 address)"
+        "\n2. branchid            (uint256 string)"
+        "\n3. prompt              (string)"
+        "\n4. eventoverby         (block number)"
+        "\n5. answer optionality  (false=mandatory to answer, true=optional to answer)"
+        "\n6. is_scaled           (boolean)"
+        "\n7. scaled min          (if scaled, numeric)"
+        "\n8. scaled max          (if scaled, numeric)";
+
+    if (fHelp || (params.size() != 6 && params.size() != 8))
+        throw runtime_error(strHelp);
+
+    EnsureWalletIsUnlocked();
+
+    struct marketDecision obj;
+    CTruthcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+            "Invalid Truthcoin address");
+    address.GetKeyID(obj.keyID);
+    obj.branchid.SetHex(params[1].get_str());
+    obj.prompt = params[2].get_str();
+    obj.eventOverBy = (uint32_t) params[3].get_int();
+    obj.answerOptionality = (params[4].get_bool())? 1: 0;
+    obj.isScaled = (params[5].get_bool())? 1: 0;
+    if ((obj.isScaled) && (params.size() != 8))
+        throw runtime_error(strHelp);
+    obj.min = (params.size() == 6)? 0: int64FromValue(params[6]);
+    obj.max = (params.size() == 6)? COIN: int64FromValue(params[7]);
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(obj.branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + obj.branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+    const marketBranch *branch = bit->second;
+
+    // double-check object is not a duplicate
+    uint256 objid = obj.GetHash();
+    std::map<uint256, marketDecision *>::const_iterator dit
+        = branch->decisions.find(objid);
+    if (dit != branch->decisions.end()) {
+        string strError = std::string("Error: decisionid ")
+            + objid.ToString() + " already exists!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // ensure unlocked wallet
+    string strError;
+    if (pwalletMain->IsLocked()) {
+        strError = "Error: Wallet locked, unable to create transaction!";
+        LogPrintf("createdecision() : %s", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+
+    // create output script
+    CScript scriptPubKey = obj.GetScript();
+
+    // key to send the change to
+    CReserveKey reservekey(pwalletMain);
+
+    // fee to create decision
+    CAmount nFeeRequired;
+    CAmount nAmount = (int64_t) rounduint64(0.01*COIN);
+
+    string strAccount;
+    CWalletTx wtx;
+    CTxDestination txDestChange;
+    if (!pwalletMain->CreateTransaction(scriptPubKey, strAccount, nAmount, wtx,
+        reservekey, nFeeRequired, strError, txDestChange)) 
+    {
+        if (nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf(
+                "Error: This transaction requires a transaction fee of at least %s!",
+                FormatMoney(nFeeRequired));
+        LogPrintf("createdecision() : %s\n", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtx, reservekey))
+        throw JSONRPCError(RPC_WALLET_ERROR,
+            "Error: The createdecision transaction was rejected!");
+
+    Object entry;
+    entry.push_back(Pair("txid", wtx.GetHash().ToString()));
+    entry.push_back(Pair("decisionid", objid.ToString()));
+    return entry;
+}
+
+Value createmarket(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "createmarket address decisionid[,...] B tradingfee address title"
+        " description tags[,...] maturation"
+        "\nCreates a new market on the decisions."
+        "\n1. address             (base58 address)"
+        "\n2. decisionid[,...]    (comma-separated list of decisions)"
+        "\n3. B                   (numeric) liquidity parameter"
+        "\n4. tradingfee          (numeric)"
+        "\n5. max commission      (numeric)"
+        "\n6. title               (string)"
+        "\n7. description         (string)"
+        "\n8. tags[,...]          (comma-separated list of strings)"
+        "\n9. maturation          (block number)"
+        "\n10. tx PoW             (numeric)"
+        "\nEach decisionid is a hash of a decision optionally followed by a function code."
+        "\nThe available function codes are"
+        "\n    :X1   X, identity [default]"
+        "\n    :X2   X^2"
+        "\n    :X3   X^3"
+        "\n    :LNX  LN(X)";
+
+    if (fHelp || (params.size() != 10))
+        throw runtime_error(strHelp);
+
+    EnsureWalletIsUnlocked();
+
+    CTruthcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Truthcoin address");
+    struct marketMarket obj;
+    address.GetKeyID(obj.keyID);
+    uint32_t nstates = 1;
+    std::string param_decision = params[1].get_str();
+    vector<string> strs;
+    boost::split(strs, param_decision, boost::algorithm::is_any_of(", "));
+    for(uint32_t i=0; i < strs.size(); i++) {
+        uint256 decisionID;
+        int decisionFunctionID = DFID_X1;
+        size_t separator = strs[i].find(":");
+        if (separator != std::string::npos) {
+            std::string function_code = strs[i].substr(separator+1);
+            decisionFunctionID = decisionFunctionToInt(function_code);
+            if (decisionFunctionID < 0) {
+                string strError = std::string("Error: decision function ")
+                    + function_code + " does not exist!"; 
+                throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+            }
+            strs[i].erase(separator);
+        }
+        decisionID.SetHex(strs[i].c_str());
+        if (marketDecisionToBranch.find(decisionID) == marketDecisionToBranch.end()) {
+            string strError = std::string("Error: decisionID ")
+                + decisionID.ToString() + " does not exist!"; 
+            throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+        }
+        uint256 branchid = marketDecisionToBranch[decisionID];
+        if (obj.branchid.IsNull())
+            obj.branchid = branchid;
+        else 
+        if (obj.branchid != branchid) {
+            string strError = std::string("Error: decisionIDs are in separate branches ")
+                + branchid.ToString() + " " + obj.branchid.ToString() + "!";
+            throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+        }
+        obj.decisionIDs.push_back(decisionID);
+        obj.decisionFunctionIDs.push_back(decisionFunctionID);
+        nstates *= 2;
+    }
+    if ((!obj.decisionIDs.size()) || (nstates == 1)) {
+        string strError = std::string("Error: There are no decisionids!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+    obj.B = uint64FromValue(params[2], false);
+    obj.tradingFee = uint64FromValue(params[3], false);
+    obj.maxCommission = uint64FromValue(params[4], false);
+    obj.title = params[5].get_str();
+    obj.description = params[6].get_str();
+    obj.tags = params[7].get_str();
+    obj.maturation = (uint32_t)params[8].get_int();
+    obj.txPoW = (uint32_t)params[9].get_int();
+    double capitalrequired = marketMarket_capitalrequired(obj.B/1e8, nstates);
+    obj.account = rounduint64(capitalrequired * COIN);
+
+    // double-check object is not a duplicate
+    uint256 objid = obj.GetHash();
+    if (marketMarketToBranch.find(objid) != marketMarketToBranch.end()) {
+        string strError = std::string("Error: marketid ")
+            + objid.ToString() + " already exists!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // ensure unlocked wallet
+    string strError;
+    if (pwalletMain->IsLocked()) {
+        strError = "Error: Wallet locked, unable to create transaction!";
+        LogPrintf("createmarket() : %s", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+
+    // create output script
+    CScript scriptPubKey = obj.GetScript();
+
+    // key to send the change to
+    CReserveKey reservekey(pwalletMain);
+
+    // fee to create market
+    CAmount nFeeRequired;
+    CAmount nAmount = (int64_t) (rounduint64(0.01*COIN) + obj.account);
+
+    string strAccount;
+    CWalletTx wtx;
+    CTxDestination txDestChange;
+    if (!pwalletMain->CreateTransaction(scriptPubKey, strAccount, nAmount, wtx,
+        reservekey, nFeeRequired, strError, txDestChange)) 
+    {
+        if (nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf(
+                "Error: This transaction requires a transaction fee of at least %s!",
+                FormatMoney(nFeeRequired));
+        LogPrintf("createmarket() : %s\n", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtx, reservekey))
+        throw JSONRPCError(RPC_WALLET_ERROR,
+            "Error: The createmarket transaction was rejected!");
+
+    Object entry;
+    entry.push_back(Pair("txid", wtx.GetHash().ToString()));
+    entry.push_back(Pair("marketid", objid.ToString()));
+    return entry;
+}
+
+Value createtrade(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "createtrade address marketid buy_or_sell number_shares"
+        " price decision_state [nonce]"
+        "\nCreates a new trade order in the market."
+        "\n1. address             (base58 address)"
+        "\n2. marketid            (u256 string)"
+        "\n3. buy_or_sell         (string)"
+        "\n4. number_shares       (numeric)"
+        "\n5. price               (numeric)"
+        "\n6. decision_state      (string)"
+        "\n7. nonce               (optional numeric)"
+        "\n"
+        "\nNote: for repeated trades, increase the nonce.";
+
+    if (fHelp || ((params.size() != 6) && (params.size() != 7)))
+        throw runtime_error(strHelp);
+
+    EnsureWalletIsUnlocked();
+
+    marketTrade obj;
+    CTruthcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Truthcoin address");
+    address.GetKeyID(obj.keyID);
+    obj.marketid.SetHex(params[1].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketMarketToBranch.find(obj.marketid);
+    if (it == marketMarketToBranch.end()) {
+        string strError = std::string("Error: branchid for ")
+            + obj.marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->first);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->first.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+    std::map<uint256, marketMarket *>::const_iterator mit
+        = branch->markets.find(obj.marketid);
+    if (mit == branch->markets.end()) {
+        string strError = std::string("Error: market for ")
+            + obj.marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketMarket *market = mit->second;
+
+    string buy_or_sell = params[2].get_str();
+    if ((buy_or_sell != "buy") && (buy_or_sell != "sell")) {
+        string strError = std::string("Error: '")
+            + buy_or_sell + "' must be buy or sell!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+    obj.isBuy = (buy_or_sell == "buy")? true: false;
+    obj.nShares = uint64FromValue(params[3], false);
+    obj.price = uint64FromValue(params[4], false);
+    obj.decisionState = (uint32_t)params[5].get_int();
+    obj.nonce = (params.size() != 7)? 0: (uint32_t)params[6].get_int();
+
+    // double-check object is not a duplicate
+    uint256 objid = obj.GetHash();
+    if (market->trades.find(objid) != market->trades.end()) {
+        string strError = std::string("Error: tradeid ")
+            + objid.ToString() + " already exists!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // current shares of the market for each decision id
+    double nShares0 = 0.0;
+    double nShares1 = 0.0;
+    market->getNShares(nShares0, nShares1);
+    double currAccount = market->getAccount(nShares0, nShares1);
+    double nShares = 1e-8 * obj.nShares;
+
+    // new shares to be added to the market
+    double dnShares0 = 0.0;
+    double dnShares1 = 0.0;
+    if (obj.decisionState == 0)
+        dnShares0 = (obj.isBuy)? nShares: -nShares;
+    else
+        dnShares1 = (obj.isBuy)? nShares: -nShares;
+    double nextAccount = market->getAccount(nShares0 + dnShares0,
+        nShares1 + dnShares1);
+
+    // the price difference to move from the current to the new
+    double price = (nextAccount - currAccount) / nShares;
+    if (!obj.isBuy) price = -price;
+    double totalCost = price * nShares;
+
+    if ((obj.isBuy) && (price > 1e-8*obj.price)) {
+        char tmp[32];
+        snprintf(tmp, sizeof(tmp), "%.8f", price);
+        string strError = std::string("Error: price needs to be at least ")
+            + tmp;
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // ensure unlocked wallet
+    string strError;
+    if (pwalletMain->IsLocked()) {
+        strError = "Error: Wallet locked, unable to create transaction!";
+        LogPrintf("createtrade() : %s", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+
+    // create output script
+    CScript scriptPubKey = obj.GetScript();
+
+    // key to send the change to
+    CReserveKey reservekey(pwalletMain);
+
+    // fee to create market
+    CAmount nFeeRequired;
+    CAmount nAmount = (int64_t) (rounduint64(0.01*COIN) + rounduint64(totalCost*COIN));
+
+    string strAccount;
+    CWalletTx wtx;
+    CTxDestination txDestChange;
+    if (!pwalletMain->CreateTransaction(scriptPubKey, strAccount, nAmount, wtx,
+        reservekey, nFeeRequired, strError, txDestChange)) 
+    {
+        if (nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf(
+                "Error: This transaction requires a transaction fee of at least %s!",
+                FormatMoney(nFeeRequired));
+        LogPrintf("createtrade() : %s\n", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtx, reservekey))
+        throw JSONRPCError(RPC_WALLET_ERROR,
+            "Error: The createtrade transaction was rejected!");
+
+    Object entry;
+    entry.push_back(Pair("txid", wtx.GetHash().ToString()));
+    entry.push_back(Pair("tradeid", objid.ToString()));
+    entry.push_back(Pair("B", 1e-8*market->B));
+    entry.push_back(Pair("buy_or_sell", buy_or_sell));
+    entry.push_back(Pair("nShares", nShares));
+    entry.push_back(Pair("price", price));
+    entry.push_back(Pair("total", nShares*price));
+
+    return entry;
+}
+
+Value createvote(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "createvote branchid height NA decisionid,vote [...]"
+        "\nCreates a new vote for the outcomeid."
+        "\n1. branchid            (u256 string)"
+        "\n2. height              (numeric)"
+        "\n3. NA                  (numeric)"
+        "\n4. decisionid,vote     (u256 string, numeric).";
+
+    if (fHelp || (params.size() < 4))
+        throw runtime_error(strHelp);
+
+    EnsureWalletIsUnlocked();
+
+    marketVote obj;
+    obj.branchid.SetHex(params[0].get_str());
+    obj.height = params[1].get_int();
+    obj.NA = uint64FromValue(params[2], false);
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(obj.branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + obj.branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    marketBranch *branch = bit->second;
+    if (obj.height % branch->tau != 0) {
+        string strError = std::string("Error: Invalid height ")
+            + " for the branch's tau!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    vector<uint256> decisionIDs;
+    vector<uint64_t> decisionVotes;
+    for(uint32_t i=3; i < params.size(); i++) {
+        string str = params[i].get_str();
+        size_t separator = str.find(",");
+        if (separator == std::string::npos) {
+            string strError = std::string("Error: decisionid,vote ")
+                + str + " is not in correct form!"; 
+            throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+        }
+        std::string vote = str.substr(separator+1);
+        str.erase(separator);
+        uint256 decisionid;
+        decisionid.SetHex(str.c_str());
+        obj.decisionIDs.push_back(decisionid);
+        obj.decisionVotes.push_back(rounduint64(atof(vote.c_str())* COIN));
+    }
+
+    std::map<uint32_t, marketBallot *>::const_iterator bait
+        = branch->ballots.find(obj.height);
+    marketBallot *ballot = NULL;
+    if (bait == branch->ballots.end()) {
+        ballot = new marketBallot;
+        ballot->height = obj.height;
+        branch->ballots[obj.height] = ballot;
+    } else
+        ballot = bait->second;
+
+    // double-check object is not a duplicate
+    uint256 objid = obj.GetHash();
+    std::map<uint256, marketVote *>::const_iterator vit
+        = ballot->votes.find(objid);
+    if (vit != ballot->votes.end()) {
+        string strError = std::string("Error: voteid ")
+            + objid.ToString() + " already exists!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // ensure unlocked wallet
+    string strError;
+    if (pwalletMain->IsLocked()) {
+        strError = "Error: Wallet locked, unable to create transaction!";
+        LogPrintf("createtrade() : %s", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+
+    // create output script
+    CScript scriptPubKey = obj.GetScript();
+
+    // key to send the change to
+    CReserveKey reservekey(pwalletMain);
+
+    // fee to create vote
+    CAmount nFeeRequired;
+    CAmount nAmount = (int64_t) rounduint64(0.01*COIN);
+
+    string strAccount = obj.branchid.ToString();
+    CWalletTx wtx;
+    CTxDestination txDestChange;
+    if (!pwalletMain->CreateTransaction(scriptPubKey, strAccount, nAmount, wtx,
+        reservekey, nFeeRequired, strError, txDestChange)) 
+    {
+        if (nFeeRequired > pwalletMain->GetBalance())
+            strError = strprintf(
+                "Error: This transaction requires a transaction fee of at least %s!",
+                FormatMoney(nFeeRequired));
+        LogPrintf("createtrade() : %s\n", strError);
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    if (!pwalletMain->CommitTransaction(wtx, reservekey))
+        throw JSONRPCError(RPC_WALLET_ERROR,
+            "Error: The createtrade transaction was rejected!");
+
+    Object entry;
+    entry.push_back(Pair("txid", wtx.GetHash().ToString()));
+    entry.push_back(Pair("voteid", objid.ToString()));
+    return entry;
+};
+
+Value getbranch(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getbranch branchid"
+        "\nReturns the branch."
+        "\n1. branchid            (u256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+    const marketBranch *obj = bit->second;
+
+    Object entry;
+    entry.push_back(Pair("branchid", bit->first.ToString()));
+    entry.push_back(Pair("txid", obj->txid.ToString()));
+    entry.push_back(Pair("name", obj->name));
+    entry.push_back(Pair("description", obj->description));
+    entry.push_back(Pair("baselistingfee", ValueFromAmount(obj->baseListingFee)));
+    entry.push_back(Pair("freedecisions", (int)obj->freeDecisions));
+    entry.push_back(Pair("targetdecisions", (int)obj->targetDecisions));
+    entry.push_back(Pair("maxdecisions", (int)obj->maxDecisions));
+    entry.push_back(Pair("mintradingfee", ValueFromAmount(obj->minTradingFee)));
+    entry.push_back(Pair("tau", (int)obj->tau));
+    entry.push_back(Pair("ballottime", (int)obj->ballotTime));
+    entry.push_back(Pair("unsealtime", (int)obj->unsealTime));
+    entry.push_back(Pair("consensusthreshold", ValueFromAmount(obj->consensusThreshold)));
+
+    Array array;
+    for(uint32_t i=0; i < obj->tx.vout.size(); i++) {
+        const CTxOut &vout = obj->tx.vout[i];
+        if (vout.nValue == 0)
+            continue;
+        CTxDestination dest;
+        if (!ExtractDestination(vout.scriptPubKey, dest))
+            continue;
+        CTruthcoinAddress addr;
+        addr.is_votecoin = 1;
+        if (!addr.Set(dest))
+            continue;
+        Object item;
+        item.push_back(Pair("addr", addr.ToString()));
+        item.push_back(Pair("amount", ValueFromAmount(vout.nValue)));
+        array.push_back(item);
+    }
+    entry.push_back(Pair("votecoins", array));
+
+    return entry;
+}
+
+Value getdecision(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getdecision decisionid"
+        "\nReturns the decision."
+        "\n1. decisionid          (u256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 decisionid;
+    decisionid.SetHex(params[0].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketDecisionToBranch.find(decisionid);
+    if (it == marketDecisionToBranch.end()) {
+        string strError = std::string("Error: branchid for ")
+            + decisionid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->second);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->second.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+    std::map<uint256, marketDecision *>::const_iterator dit
+        = branch->decisions.find(decisionid);
+    if (dit == branch->decisions.end()) {
+        string strError = std::string("Error: decision for ")
+            + decisionid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketDecision *obj = dit->second;
+    Object entry;
+    entry.push_back(Pair("decisionid", decisionid.ToString()));
+    entry.push_back(Pair("txid", obj->txid.ToString()));
+    CTruthcoinAddress addr;
+    if (addr.Set(obj->keyID))
+        entry.push_back(Pair("keyID", addr.ToString()));
+    entry.push_back(Pair("branchid", obj->branchid.ToString()));
+    entry.push_back(Pair("prompt", obj->prompt));
+    entry.push_back(Pair("eventoverby", (int)obj->eventOverBy));
+    entry.push_back(Pair("isScaled", (int)obj->isScaled));
+    entry.push_back(Pair("min", ValueFromAmount(obj->min)));
+    entry.push_back(Pair("max", ValueFromAmount(obj->max)));
+    entry.push_back(Pair("answerOptionality", (int)obj->answerOptionality));
+    return entry;
+}
+
+Value getmarket(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getmarket marketid"
+        "\nReturns the market."
+        "\n1. marketid            (u256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 marketid;
+    marketid.SetHex(params[0].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketMarketToBranch.find(marketid);
+    if (it == marketMarketToBranch.end()) {
+        string strError = std::string("Error: branchid for ")
+            + marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->first);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->first.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+    std::map<uint256, marketMarket *>::const_iterator mit
+        = branch->markets.find(marketid);
+    if (mit == branch->markets.end()) {
+        string strError = std::string("Error: market for ")
+            + marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketMarket *obj = mit->second;
+
+    // current shares of the market for each decision id
+    double nShares0 = 0.0;
+    double nShares1 = 0.0;
+    obj->getNShares(nShares0, nShares1);
+    double currAccount = obj->getAccount(nShares0, nShares1);
+
+    Object entry;
+    entry.push_back(Pair("marketid", marketid.ToString()));
+    entry.push_back(Pair("txid", obj->txid.ToString()));
+    CTruthcoinAddress addr;
+    if (addr.Set(obj->keyID))
+        entry.push_back(Pair("keyID", addr.ToString()));
+    entry.push_back(Pair("B", ValueFromAmount(obj->B)));
+    entry.push_back(Pair("tradingFee", ValueFromAmount(obj->tradingFee)));
+    entry.push_back(Pair("maxCommission", ValueFromAmount(obj->maxCommission)));
+    entry.push_back(Pair("title", obj->title));
+    entry.push_back(Pair("description", obj->description));
+    entry.push_back(Pair("tags", obj->tags));
+    entry.push_back(Pair("maturation", (int)obj->maturation));
+    entry.push_back(Pair("txPoW", (int)obj->txPoW));
+    Array array;
+    for(uint32_t i=0; i < obj->decisionIDs.size(); i++) {
+        string str = obj->decisionIDs[i].ToString();
+        str += ":";
+        if (i < obj->decisionFunctionIDs.size())
+            str += decisionFunctionIDToString(obj->decisionFunctionIDs[i]);
+        array.push_back(str);
+    }
+    entry.push_back(Pair("decisionIDs", array));
+    entry.push_back(Pair("nShares0", nShares0));
+    entry.push_back(Pair("nShares1", nShares1));
+    entry.push_back(Pair("currAccount", currAccount));
+    return entry;
+}
+
+Value getoutcome(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getoutcome outcomeid"
+        "\nReturns the outcome."
+        "\nArguments:"
+        "\n1. outcomeid    (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 outcomeid;
+    outcomeid.SetHex(params[0].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketOutcomeToBranch.find(outcomeid);
+    if (it == marketOutcomeToBranch.end()) {
+        string strError = std::string("Error: outcomeid for ")
+            + outcomeid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->first);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->first.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+    std::map<uint256, marketOutcome *>::const_iterator oit
+        = branch->outcomes.find(outcomeid);
+    if (oit == branch->outcomes.end()) {
+        string strError = std::string("Error: outcome for ")
+            + outcomeid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketOutcome *obj = oit->second;
+
+    Object entry;
+    entry.push_back(Pair("nVoters", (int)obj->nVoters));
+    entry.push_back(Pair("nDecisions", (int)obj->nDecisions));
+    entry.push_back(Pair("NA", ValueFromAmount(obj->NA)));
+    entry.push_back(Pair("tol", ValueFromAmount(obj->tol)));
+    entry.push_back(Pair("alpha", ValueFromAmount(obj->alpha)));
+
+    Array voteMatrix;
+    for(uint32_t i=0; i < obj->voteMatrix.size(); i++)
+        voteMatrix.push_back(ValueFromAmount(obj->voteMatrix[i]));
+    entry.push_back(Pair("voteMatrix", voteMatrix));
+
+    /* Voter Vectors */
+    Array voterIDs;
+    for(uint32_t i=0; i < obj->voterIDs.size(); i++)
+        voterIDs.push_back(obj->voterIDs[i].ToString());
+    entry.push_back(Pair("voterIDs", voterIDs));
+
+    Array oldRep;
+    for(uint32_t i=0; i < obj->oldRep.size(); i++)
+        oldRep.push_back(ValueFromAmount(obj->oldRep[i]));
+    entry.push_back(Pair("oldRep", oldRep));
+
+    Array thisRep;
+    for(uint32_t i=0; i < obj->thisRep.size(); i++)
+        thisRep.push_back(ValueFromAmount(obj->thisRep[i]));
+    entry.push_back(Pair("thisRep", oldRep));
+
+    Array smoothedRep;
+    for(uint32_t i=0; i < obj->smoothedRep.size(); i++)
+        smoothedRep.push_back(ValueFromAmount(obj->smoothedRep[i]));
+    entry.push_back(Pair("smoothedRep", oldRep));
+
+    Array NARow;
+    for(uint32_t i=0; i < obj->NARow.size(); i++)
+        NARow.push_back(ValueFromAmount(obj->NARow[i]));
+    entry.push_back(Pair("NARow", oldRep));
+
+    Array particRow;
+    for(uint32_t i=0; i < obj->particRow.size(); i++)
+        particRow.push_back(ValueFromAmount(obj->particRow[i]));
+    entry.push_back(Pair("particRow", oldRep));
+
+    Array particRel;
+    for(uint32_t i=0; i < obj->particRel.size(); i++)
+        particRel.push_back(ValueFromAmount(obj->particRel[i]));
+    entry.push_back(Pair("particRel", oldRep));
+
+    Array rowBonus;
+    for(uint32_t i=0; i < obj->rowBonus.size(); i++)
+        rowBonus.push_back(ValueFromAmount(obj->rowBonus[i]));
+    entry.push_back(Pair("rowBonus", oldRep));
+
+    /* Decision Vectors */
+
+    Array decisionIDs;
+    for(uint32_t i=0; i < obj->decisionIDs.size(); i++)
+        decisionIDs.push_back(obj->decisionIDs[i].ToString());
+    entry.push_back(Pair("decisionIDs", decisionIDs));
+
+    Array isScaled;
+    for(uint32_t i=0; i < obj->isScaled.size(); i++)
+        isScaled.push_back(ValueFromAmount(obj->isScaled[i]));
+    entry.push_back(Pair("isScaled", isScaled));
+
+    Array firstLoading;
+    for(uint32_t i=0; i < obj->firstLoading.size(); i++)
+        firstLoading.push_back(ValueFromAmount(obj->firstLoading[i]));
+    entry.push_back(Pair("firstLoading", firstLoading));
+
+    Array decisionsRaw;
+    for(uint32_t i=0; i < obj->decisionsRaw.size(); i++)
+        decisionsRaw.push_back(ValueFromAmount(obj->decisionsRaw[i]));
+    entry.push_back(Pair("decisionsRaw", decisionsRaw));
+
+    Array consensusReward;
+    for(uint32_t i=0; i < obj->consensusReward.size(); i++)
+        consensusReward.push_back(ValueFromAmount(obj->consensusReward[i]));
+    entry.push_back(Pair("consensusReward", consensusReward));
+
+    Array certainty;
+    for(uint32_t i=0; i < obj->certainty.size(); i++)
+        certainty.push_back(ValueFromAmount(obj->certainty[i]));
+    entry.push_back(Pair("certainty", certainty));
+
+    Array NACol;
+    for(uint32_t i=0; i < obj->NACol.size(); i++)
+        NACol.push_back(ValueFromAmount(obj->NACol[i]));
+    entry.push_back(Pair("NACol", NACol));
+
+    Array particCol;
+    for(uint32_t i=0; i < obj->particCol.size(); i++)
+        particCol.push_back(ValueFromAmount(obj->particCol[i]));
+    entry.push_back(Pair("particCol", particCol));
+
+    Array authorBonus;
+    for(uint32_t i=0; i < obj->authorBonus.size(); i++)
+        authorBonus.push_back(ValueFromAmount(obj->authorBonus[i]));
+    entry.push_back(Pair("authorBonus", authorBonus));
+
+    Array decisionsFinal;
+    for(uint32_t i=0; i < obj->decisionsFinal.size(); i++)
+        decisionsFinal.push_back(ValueFromAmount(obj->decisionsFinal[i]));
+    entry.push_back(Pair("decisionsFinal", decisionsFinal));
+
+    return entry;
+}
+
+Value gettrade(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "gettrade tradeid"
+        "\nReturns the trade."
+        "\nArguments:"
+        "\n1. tradeid      (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 tradeid;
+    tradeid.SetHex(params[0].get_str());
+
+    // TODO 
+
+    Object entry;
+    entry.push_back(Pair("tradeid", tradeid.ToString()));
+
+    return entry;
+}
+
+Value getvote(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getvote voteid"
+        "\nReturns the vote."
+        "\nArguments:"
+        "\n1. voteid       (uint256 string)";
+
+    if (fHelp || (params.size() != 1))
+        throw runtime_error(strHelp);
+
+    uint256 voteid;
+    voteid.SetHex(params[0].get_str());
+
+    // TODO 
+
+    Object entry;
+    entry.push_back(Pair("voteid", voteid.ToString()));
+
+    return entry;
+}
+
+Value getballot(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getballot branchid [height]"
+        "\nReturns the ballot (terminated decisionids) for the given branchid."
+        "\nArguments:"
+        "\n1. branchid     (uint256 string)"
+        "\n2. height       (optional, numeric)";
+
+    if (fHelp || ((params.size() != 1) && (params.size() != 2)))
+        throw runtime_error(strHelp);
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
+
+    uint32_t block_num = 0;
+    if (params.size() == 2)
+		block_num = (uint32_t) params[1].get_int();
+    else {
+        LOCK(cs_main);
+        block_num = chainActive.Height();
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(branchid);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+    uint32_t minblock = branch->tau * ((block_num - 1)/ branch->tau);
+    uint32_t maxblock = minblock + branch->tau - 1;
+
+    Object entry;
+    entry.push_back(Pair("branchid", branchid.ToString()));
+    entry.push_back(Pair("minblock", (int)minblock));
+    entry.push_back(Pair("maxblock", (int)maxblock));
+
+    Array array;
+    std::map<uint256, marketDecision *>::const_iterator dit;
+    for(dit=branch->decisions.begin(); dit != branch->decisions.end(); dit++) {
+        const marketDecision *obj = dit->second;
+        Object item;
+        item.push_back(Pair("decisionid", dit->first.ToString()));
+        item.push_back(Pair("txid", obj->txid.ToString()));
+        CTruthcoinAddress addr;
+        if (addr.Set(obj->keyID))
+		    item.push_back(Pair("keyID", addr.ToString()));
+        item.push_back(Pair("branchid", obj->branchid.ToString()));
+        item.push_back(Pair("prompt", obj->prompt));
+        item.push_back(Pair("eventoverby", (int)obj->eventOverBy));
+        item.push_back(Pair("isScaled", (int)obj->isScaled));
+        item.push_back(Pair("min", ValueFromAmount(obj->min)));
+        item.push_back(Pair("max", ValueFromAmount(obj->max)));
+        item.push_back(Pair("answerOptionality", (int)obj->answerOptionality));
+        array.push_back(item);
+    }
+    entry.push_back(Pair("decisions", array));
+
+    return entry;
+}
+
+Value getcreatemarketcapitalrequired(const Array& params, bool fHelp)
+{
+    string strHelp = 
+        "getcreatemarketcapitalrequired B number_of_states"
+        "\nReturns the capital required to create a new market."
+        "\n1. B                   (numeric) liquidity parameter"
+        "\n2. number_of_states    (numeric)";
+
+    if (fHelp || (params.size() != 2))
+        throw runtime_error(strHelp);
+
+    double B = uint64FromValue(params[0], false) / 1e8;
+    uint32_t number_of_states = (uint32_t)params[1].get_int();
+    double capitalrequired = marketMarket_capitalrequired(B, number_of_states);
+
+    Object entry;
+    entry.push_back(Pair("B", B));
+    entry.push_back(Pair("number_of_states", (int)number_of_states));
+    entry.push_back(Pair("capitalrequired", capitalrequired));
+    return entry;
+}
+
+Value getcreatetradecapitalrequired(const Array& params, bool fHelp)
+{
+    string strHelp = 
+            "getcreatetradecapitalrequired marketid number_shares decision_state"
+            "\nReturns the capital required to trade."
+            "\n1. marketid            (u256 string)"
+            "\n2. buy or sell         (string)"
+            "\n3. number_shares       (numeric)"
+            "\n4. decision_state      (string)";
+
+    if (fHelp || (params.size() != 4))
+        throw runtime_error(strHelp);
+
+    uint256 marketid;
+    marketid.SetHex(params[0].get_str());
+
+    std::map<uint256, uint256>::const_iterator it
+        = marketMarketToBranch.find(marketid);
+    if (it == marketMarketToBranch.end()) {
+        string strError = std::string("Error: branchid for ")
+            + marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    std::map<uint256, marketBranch *>::const_iterator bit
+        = marketBranches.find(it->first);
+    if (bit == marketBranches.end()) {
+        string strError = std::string("Error: branchid ")
+            + it->first.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketBranch *branch = bit->second;
+    std::map<uint256, marketMarket *>::const_iterator mit
+        = branch->markets.find(marketid);
+    if (mit == branch->markets.end()) {
+        string strError = std::string("Error: market for ")
+            + marketid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    const marketMarket *market = mit->second;
+
+    string buy_or_sell = params[1].get_str();
+    bool isBuy = (buy_or_sell == "buy");
+    bool isSell = (buy_or_sell == "sell");
+    if (!isBuy && !isSell) {
+        string strError = std::string("Error: '")
+            + buy_or_sell + "' must be buy or sell!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    double nShares = 1e-8 * uint64FromValue(params[2], false);
+    if (nShares <= 0.0) {
+        string strError = std::string("Error: nShares must be positive!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    uint32_t decisionState = params[3].get_int();
+    if ((decisionState != 0) && (decisionState != 1)) {
+        string strError = std::string("Error: decision_state must be 0 or 1!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    // current shares of the market for each decision id
+    double nShares0 = 0.0;
+    double nShares1 = 0.0;
+    market->getNShares(nShares0, nShares1);
+    double currAccount = market->getAccount(nShares0, nShares1);
+
+    // new shares to be added to the market
+    double dnShares0 = 0.0;
+    double dnShares1 = 0.0;
+    if (decisionState == 0)
+        dnShares0 = (isBuy)? nShares: -nShares;
+    else
+        dnShares1 = (isBuy)? nShares: -nShares;
+    double nextAccount = market->getAccount(nShares0 + dnShares0,
+        nShares1 + dnShares1);
+
+    // the price difference to move from the current to the new
+    double price = (nextAccount - currAccount) / nShares;
+    if (!isBuy) price = -price;
+
+    Object entry;
+    entry.push_back(Pair("nShares0", nShares0));
+    entry.push_back(Pair("nShares1", nShares1));
+    entry.push_back(Pair("B", 1e-8*market->B));
+    entry.push_back(Pair("buy_or_sell", buy_or_sell));
+    entry.push_back(Pair("nShares", nShares));
+    entry.push_back(Pair("price", price));
+    entry.push_back(Pair("total", nShares*price));
+    return entry;
+}
+

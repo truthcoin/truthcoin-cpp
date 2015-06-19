@@ -7,6 +7,10 @@
 
 #include "addresstablemodel.h"
 #include "guiconstants.h"
+#include "marketbranchtablemodel.h"
+#include "marketdecisiontablemodel.h"
+#include "marketmarkettablemodel.h"
+#include "markettradetablemodel.h"
 #include "recentrequeststablemodel.h"
 #include "transactiontablemodel.h"
 
@@ -29,6 +33,10 @@ using namespace std;
 
 WalletModel::WalletModel(CWallet *wallet, OptionsModel *optionsModel, QObject *parent) :
     QObject(parent), wallet(wallet), optionsModel(optionsModel), addressTableModel(0),
+    marketBranchTableModel(0),
+    marketDecisionTableModel(0),
+    marketMarketTableModel(0),
+    marketTradeTableModel(0),
     transactionTableModel(0),
     recentRequestsTableModel(0),
     cachedBalance(0), cachedUnconfirmedBalance(0), cachedImmatureBalance(0),
@@ -39,6 +47,10 @@ WalletModel::WalletModel(CWallet *wallet, OptionsModel *optionsModel, QObject *p
     fForceCheckBalanceChanged = false;
 
     addressTableModel = new AddressTableModel(wallet, this);
+    marketBranchTableModel = new MarketBranchTableModel(wallet, this);
+    marketDecisionTableModel = new MarketDecisionTableModel(wallet, this);
+    marketMarketTableModel = new MarketMarketTableModel(wallet, this);
+    marketTradeTableModel = new MarketTradeTableModel(wallet, this);
     transactionTableModel = new TransactionTableModel(wallet, this);
     recentRequestsTableModel = new RecentRequestsTableModel(wallet, this);
 
@@ -61,7 +73,8 @@ CAmount WalletModel::getBalance(const CCoinControl *coinControl) const
     {
         CAmount nBalance = 0;
         std::vector<COutput> vCoins;
-        wallet->AvailableCoins(vCoins, true, coinControl);
+        std::string strAccount;
+        wallet->AvailableCoins(strAccount, vCoins, true, coinControl);
         BOOST_FOREACH(const COutput& out, vCoins)
             if(out.fSpendable)
                 nBalance += out.tx->vout[out.i].nValue;
@@ -262,10 +275,12 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         transaction.newPossibleKeyChange(wallet);
         CAmount nFeeRequired = 0;
         std::string strFailReason;
-
+        std::string strAccount;
         CWalletTx *newTx = transaction.getTransaction();
         CReserveKey *keyChange = transaction.getPossibleKeyChange();
-        bool fCreated = wallet->CreateTransaction(vecSend, *newTx, *keyChange, nFeeRequired, strFailReason, coinControl);
+        CTxDestination txDestChange;
+        bool fCreated = wallet->CreateTransaction(vecSend, strAccount, *newTx,
+            *keyChange, nFeeRequired, strFailReason, txDestChange, coinControl);
         transaction.setTransactionFee(nFeeRequired);
 
         if(!fCreated)
@@ -360,6 +375,26 @@ OptionsModel *WalletModel::getOptionsModel()
 AddressTableModel *WalletModel::getAddressTableModel()
 {
     return addressTableModel;
+}
+
+MarketBranchTableModel *WalletModel::getMarketBranchTableModel()
+{
+    return marketBranchTableModel;
+}
+
+MarketDecisionTableModel *WalletModel::getMarketDecisionTableModel()
+{
+    return marketDecisionTableModel;
+}
+
+MarketMarketTableModel *WalletModel::getMarketMarketTableModel()
+{
+    return marketMarketTableModel;
+}
+
+MarketTradeTableModel *WalletModel::getMarketTradeTableModel()
+{
+    return marketTradeTableModel;
 }
 
 TransactionTableModel *WalletModel::getTransactionTableModel()
@@ -564,7 +599,8 @@ bool WalletModel::isSpent(const COutPoint& outpoint) const
 void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const
 {
     std::vector<COutput> vCoins;
-    wallet->AvailableCoins(vCoins);
+    std::string strAccount;
+    wallet->AvailableCoins(strAccount, vCoins);
 
     LOCK2(cs_main, wallet->cs_wallet); // ListLockedCoins, mapWallet
     std::vector<COutPoint> vLockedCoins;

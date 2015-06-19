@@ -226,6 +226,30 @@ extern json_spirit::Value getchaintips(const json_spirit::Array& params, bool fH
 extern json_spirit::Value invalidateblock(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value reconsiderblock(const json_spirit::Array& params, bool fHelp);
 
+extern json_spirit::Value listbranches(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value listdecisions(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value listmarkets(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value listoutcomes(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value listtrades(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value listvotes(const json_spirit::Array& params, bool fHelp);
+
+extern json_spirit::Value getbranch(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getdecision(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getmarket(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getoutcome(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value gettrade(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getvote(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getballot(const json_spirit::Array& params, bool fHelp);
+
+extern json_spirit::Value createbranch(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value createdecision(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value createmarket(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value createtrade(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value createvote(const json_spirit::Array& params, bool fHelp);
+
+extern json_spirit::Value getcreatemarketcapitalrequired(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getcreatetradecapitalrequired(const json_spirit::Array& params, bool fHelp);
+
 // in rest.cpp
 extern bool HTTPReq_REST(AcceptedConnection *conn,
                   const std::string& strURI,

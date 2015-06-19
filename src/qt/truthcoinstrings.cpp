@@ -81,10 +81,10 @@ QT_TRANSLATE_NOOP("truthcoin-core", ""
 "Execute command when the best block changes (%s in cmd is replaced by block "
 "hash)"),
 QT_TRANSLATE_NOOP("truthcoin-core", ""
-"Fees (in BTC/Kb) smaller than this are considered zero fee for relaying "
+"Fees (in CSH/Kb) smaller than this are considered zero fee for relaying "
 "(default: %s)"),
 QT_TRANSLATE_NOOP("truthcoin-core", ""
-"Fees (in BTC/Kb) smaller than this are considered zero fee for transaction "
+"Fees (in CSH/Kb) smaller than this are considered zero fee for transaction "
 "creation (default: %s)"),
 QT_TRANSLATE_NOOP("truthcoin-core", ""
 "Flush database activity from memory pool to disk log every <n> megabytes "
@@ -178,7 +178,7 @@ QT_TRANSLATE_NOOP("truthcoin-core", "Connect only to the specified node(s)"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Connect through SOCKS5 proxy"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Connect to a node to retrieve peer addresses, and disconnect"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Connection options:"),
-QT_TRANSLATE_NOOP("bitcoin-core", "Copyright (C) 2009-%i The Bitcoin Core Developers"),
+QT_TRANSLATE_NOOP("bitcoin-core", "Copyright (C) 2009-%i The Bitcoin Core Developers and (C) 2015-%i The Truthcoin Core Developers"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Corrupted block database detected"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Could not parse -rpcbind value %s as network address"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Debugging/Testing options:"),
@@ -200,7 +200,7 @@ QT_TRANSLATE_NOOP("truthcoin-core", "Error: Disk space is low!"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Error: Unsupported argument -tor found, use -onion."),
 QT_TRANSLATE_NOOP("truthcoin-core", "Error: Wallet locked, unable to create transaction!"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Failed to listen on any port. Use -listen=0 if you want this."),
-QT_TRANSLATE_NOOP("truthcoin-core", "Fee (in BTC/kB) to add to transactions you send (default: %s)"),
+QT_TRANSLATE_NOOP("truthcoin-core", "Fee (in CSH/kB) to add to transactions you send (default: %s)"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Force safe mode (default: %u)"),
 QT_TRANSLATE_NOOP("truthcoin-core", "Generate coins (default: %u)"),
 QT_TRANSLATE_NOOP("truthcoin-core", "How many blocks to check at startup (default: %u, 0 = all)"),

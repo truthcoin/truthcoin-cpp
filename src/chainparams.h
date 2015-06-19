@@ -7,13 +7,13 @@
 #ifndef TRUTHCOIN_CHAINPARAMS_H
 #define TRUTHCOIN_CHAINPARAMS_H
 
+#include <vector>
+#include "arith_uint256.h"
 #include "chainparamsbase.h"
 #include "checkpoints.h"
 #include "primitives/block.h"
+#include "primitives/market.h"
 #include "protocol.h"
-#include "arith_uint256.h"
-
-#include <vector>
 
 typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
@@ -38,6 +38,7 @@ public:
         SECRET_KEY,
         EXT_PUBLIC_KEY,
         EXT_SECRET_KEY,
+		VPUBKEY_ADDRESS,
 
         MAX_BASE58_TYPES
     };
@@ -56,6 +57,7 @@ public:
     /** Used if GenerateTruthcoins is called with a negative number of threads */
     int DefaultMinerThreads() const { return nMinerThreads; }
     const CBlock& GenesisBlock() const { return genesis; }
+    const marketBranch &GenesisBranch() const { return genesisBranch; }
     bool RequireRPCPassword() const { return fRequireRPCPassword; }
     /** Make miner wait to have peers to avoid wasting work */
     bool MiningRequiresPeers() const { return fMiningRequiresPeers; }
@@ -100,6 +102,7 @@ protected:
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::string strNetworkID;
     CBlock genesis;
+    marketBranch genesisBranch;
     std::vector<CAddress> vFixedSeeds;
     bool fRequireRPCPassword;
     bool fMiningRequiresPeers;

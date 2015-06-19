@@ -89,6 +89,9 @@ private:
     QMenuBar *appMenuBar;
     QAction *overviewAction;
     QAction *historyAction;
+    QAction *ballotAction;
+    QAction *decisionsAction;
+    QAction *marketAction;
     QAction *quitAction;
     QAction *sendCoinsAction;
     QAction *sendCoinsMenuAction;
@@ -175,6 +178,12 @@ private slots:
     void gotoOverviewPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
+    /** Switch to ballot page */
+    void gotoBallotPage();
+    /** Switch to decisions page */
+    void gotoDecisionsPage();
+    /** Switch to market page */
+    void gotoMarketPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

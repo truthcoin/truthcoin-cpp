@@ -5,13 +5,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "chainparams.h"
-
 #include "random.h"
 #include "util.h"
 #include "utilstrencodings.h"
-
 #include <assert.h>
-
 #include <boost/assign/list_of.hpp>
 
 using namespace std;
@@ -79,6 +76,7 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         strNetworkID = "main";
+bool SHORT_TAU_TESTING = true;
         /** 
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -105,26 +103,72 @@ public:
          */
         CMutableTransaction txNew;
         txNew.vin.resize(1);
-        txNew.vout.resize(1);
+        txNew.vout.resize(4);
 
-        txNew.vin[0].scriptSig = CScript() << ParseHex("ffff001d") << ParseHex("20");
-        txNew.vout[0].nValue = 50 * COIN;
-        txNew.vout[0].scriptPubKey = CScript() << ParseHex("0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000") << OP_CHECKSIG;
+        /* vin[0]: */
+        txNew.vin[0].scriptSig = CScript() << ParseHex("ffff001d") << ParseHex("84");
+
+        /* vout[0]: first branch */
+        genesisBranch.marketop = 'B';
+        genesisBranch.nHeight = 0;
+        genesisBranch.name = "Main";
+        genesisBranch.description = "Main Branch";
+        genesisBranch.baseListingFee = COIN / 100;
+        genesisBranch.freeDecisions = 10;
+        genesisBranch.targetDecisions = 20;
+        genesisBranch.maxDecisions = 30;
+        genesisBranch.minTradingFee = COIN / 100;
+if (SHORT_TAU_TESTING) {
+        genesisBranch.tau = 5;
+        genesisBranch.ballotTime = 1;
+        genesisBranch.unsealTime = 1;
+} else {
+        genesisBranch.tau = (14 * 24 * 60) / 10; /* 14 days */
+        genesisBranch.ballotTime = (genesisBranch.tau - 16)/2;
+        genesisBranch.unsealTime = (genesisBranch.tau - 16)/2;
+}
+        genesisBranch.consensusThreshold = COIN / 100;
+
+        txNew.vout[0].nValue = 0;
+        txNew.vout[0].scriptPubKey = genesisBranch.GetScript();
+
+        /* vout[1..3]: the branch's votecoins */
+        txNew.vout[1].nValue = COIN;
+        txNew.vout[1].scriptPubKey = CScript() << ParseHex("048c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa40a30463a3305193378fedf31f7cc0eb7ae784f0451cb9459e71dc73cbef9482") << OP_CHECKSIG;
+        txNew.vout[2].nValue = COIN;
+        txNew.vout[2].scriptPubKey = CScript() << ParseHex("04ab1ac1872a38a2f196bed5a6047f0da2c8130fe8de49fc4d5dfb201f7611d8e213f4a37a324d17a1e9aa5f39db6a42b6f7ef93d33e1e545f01a581f3c429d15b") << OP_CHECKSIG;
+        txNew.vout[3].nValue = COIN;
+        txNew.vout[3].scriptPubKey = CScript() << ParseHex("049729247032c0dfcf45b4841fcd72f6e9a2422631fc3466cf863e87154754dd4091d1a244265fea1dcd15c75dcbd4df3690dae85255acaf49384b492f2aa36143") << OP_CHECKSIG;
+
         genesis.vtx.push_back(txNew);
         genesis.hashPrevBlock.SetNull();
         genesis.hashMerkleRoot = genesis.BuildMerkleTree();
         genesis.nVersion = 0x00000001;
-        genesis.nTime    = 0x54ccf35f;
+if (SHORT_TAU_TESTING) {
+        genesis.nTime    = 0x5572fec8;
         genesis.nBits    = 0x1d00ffff;
-        genesis.nNonce   = 0x00157353;
+        genesis.nNonce   = 0x01451609;
+} else {
+        genesis.nTime    = 0x5517ec26;
+        genesis.nBits    = 0x1d00ffff;
+        genesis.nNonce   = 0x0a52fab0;
+}
 
+        genesisBranch.txid = txNew.GetHash();
         hashGenesisBlock = genesis.GetHash();
-        assert(hashGenesisBlock == uint256S("0x0000000075b0f5cd472190c5241d9dfe12bdc21fbc5aebba5710e584b4428e1a"));
-        assert(genesis.hashMerkleRoot == uint256S("0x048d8912abe62573cfdb30d50c17dceed955fb6a6a4c338d82ce332e50ea18a6"));
 
         vSeeds.push_back(CDNSSeedData("198.204.244.178", "198.204.244.178"));
 
+if (SHORT_TAU_TESTING) {
+        assert(genesis.hashMerkleRoot == uint256S("0x3c42bda8bd5190a60dccf4aea350f48527ca36510a6c3f704e82d4bf9c880e9a"));
+        assert(hashGenesisBlock == uint256S("0xb9e71bc88833e9dd1b8c009298ac11b846269787dc4da846e7735163a949bcea"));
+} else {
+        assert(genesis.hashMerkleRoot == uint256S("0x22070acaf5bd2762a487ffc4ec34289c4a52add700561abd96fdabd446b1730c"));
+        assert(hashGenesisBlock == uint256S("0x000000006249a3761ba3be5307773df2d7a1c3214a381c96876e098997110fc1"));
+}
+
         base58Prefixes[PUBKEY_ADDRESS] = boost::assign::list_of(0);
+        base58Prefixes[VPUBKEY_ADDRESS] = boost::assign::list_of(71);
         base58Prefixes[SCRIPT_ADDRESS] = boost::assign::list_of(5);
         base58Prefixes[SECRET_KEY] =     boost::assign::list_of(128);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E);
@@ -139,6 +183,8 @@ public:
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;
+/* TODO: take out */
+fSkipProofOfWorkCheck = true;
         fTestnetToBeDeprecatedFieldRPC = false;
     }
 
@@ -173,7 +219,7 @@ public:
         genesis.nTime = 1296688602;
         genesis.nNonce = 414098458;
         hashGenesisBlock = genesis.GetHash();
-//        assert(hashGenesisBlock == uint256S("0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
+        // assert(hashGenesisBlock == uint256S("0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
 
         vFixedSeeds.clear();
         vSeeds.clear();

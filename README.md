@@ -1,22 +1,20 @@
-Truthcoin Core
+Truthcoin Core integration/staging tree
 =====================================
 
 [![Build Status](https://travis-ci.org/truthcoin/truthcoin.svg?branch=master)](https://travis-ci.org/truthcoin/truthcoin)
 
-This is the actual C++ implementation of [the theoretical work here](https://github.com/psztorc/Truthcoin).
-
-For Windows users who barely understand how GitHub works, there is an [immediately useable version of the Truthcoin Core located here](https://github.com/truthcoin/exe).
+[http://www.truthcoin.info](http://www.truthcoin.info)
 
 What is Truthcoin?
 ----------------
 
-Truthcoin is an ambitious modification of Bitcoin, which extends Bitcoin's abilities (the sending of value-tokens) by adding the ability to create and participate in [markets for event derivatives ("prediction markets")](https://en.wikipedia.org/wiki/Prediction_market).
+Truthcoin is an ambitious modification of Bitcoin, which extends Bitcoin's abilities (to send an receive value-tokens) by adding the ability to create and participate in [markets for event derivatives ("prediction markets")](https://en.wikipedia.org/wiki/Prediction_market).
 
 Although substantially more complex, Truthcoin offers correspondingly substantial benefits, having potentially world-changing implications for science, taxation, corporate governance and politics. 
 
 Truthcoin includes two types of value-token.  One, "CashCoin", is used for storing value, buying/selling in markets and paying transaction fees to miners. This coin will resemble Bitcoin-testnet-money (an "Altcoin") for the duration of pre-release testing, and will then be a [sidechain](http://www.blockstream.com/) of Bitcoin. Therefore, the network will "accept" Bitcoin (indeed, this will be the only currency the network accepts). The second (less important) token, "VoteCoin", is used to track a smaller group of special users and reward them for providing reports to the blockchain on the status of the bet-upon events.
 
-[http://www.truthcoin.info](http://www.truthcoin.info)
+For an immediately useable, binary version of the Truthcoin Core software, see [http://www.truthcoin.info/software/](http://www.truthcoin.info/software/).
 
 License
 -------

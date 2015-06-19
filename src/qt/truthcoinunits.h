@@ -57,9 +57,9 @@ public:
      */
     enum Unit
     {
-        BTC,
-        mBTC,
-        uBTC
+        CSH,
+        mCSH,
+        uCSH
     };
 
     enum SeparatorStyle
@@ -93,6 +93,7 @@ public:
     //! Parse string to coin amount
     static bool parse(int unit, const QString &value, CAmount *val_out);
     //! Gets title for amount column including current display unit if optionsModel reference available */
+    static QString getAmountColumnTitle(const std::string &title, int unit);
     static QString getAmountColumnTitle(int unit);
     ///@}
 

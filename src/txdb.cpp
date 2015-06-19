@@ -4,14 +4,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "txdb.h"
-
-#include "pow.h"
-#include "uint256.h"
-
 #include <stdint.h>
-
 #include <boost/thread.hpp>
+#include "pow.h"
+#include "txdb.h"
+#include "uint256.h"
 
 using namespace std;
 
@@ -226,3 +223,154 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
 
     return true;
 }
+
+CMarketTreeDB::CMarketTreeDB(size_t nCacheSize, bool fMemory, bool fWipe)
+  : CLevelDBWrapper(GetDataDir() / "blocks" / "market", nCacheSize, fMemory, fWipe) {
+}
+
+bool CMarketTreeDB::ReadBlockFileInfo(int nFile, CBlockFileInfo &info) {
+    return Read(make_pair('f', nFile), info);
+}
+
+bool CMarketTreeDB::WriteReindexing(bool fReindexing) {
+    if (fReindexing)
+        return Write('R', '1');
+    else
+        return Erase('R');
+}
+
+bool CMarketTreeDB::ReadReindexing(bool &fReindexing) {
+    fReindexing = Exists('R');
+    return true;
+}
+
+bool CMarketTreeDB::ReadLastBlockFile(int &nFile) {
+    return Read('l', nFile);
+}
+
+bool CMarketTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockFileInfo*> >& fileInfo, int nLastFile, const std::vector<const CBlockIndex*>& blockinfo) {
+    CLevelDBBatch batch;
+    for (std::vector<std::pair<int, const CBlockFileInfo*> >::const_iterator it=fileInfo.begin(); it != fileInfo.end(); it++) {
+        batch.Write(make_pair('f', it->first), *it->second);
+    }
+    batch.Write('l', nLastFile);
+    return WriteBatch(batch, true);
+}
+
+bool CMarketTreeDB::WriteMarketIndex(const std::vector<std::pair<uint256, const marketObj *> >&vect) {
+    CLevelDBBatch batch;
+    for (std::vector<std::pair<uint256,const marketObj *> >::const_iterator it=vect.begin(); it!=vect.end(); it++) {
+        const marketObj *obj = it->second;
+        if (obj->marketop == 'B')
+           batch.Write(make_pair(obj->marketop, it->first),
+               make_pair(*(marketBranch *)obj, obj->txid));
+        else
+        if (obj->marketop == 'D')
+           batch.Write(make_pair(obj->marketop, it->first),
+               make_pair(*(marketDecision *)obj, obj->txid));
+        else
+        if (obj->marketop == 'M')
+           batch.Write(make_pair(obj->marketop, it->first),
+               make_pair(*(marketMarket *)obj, obj->txid));
+        else
+        if (obj->marketop == 'O')
+           batch.Write(make_pair(obj->marketop, it->first),
+               make_pair(*(marketOutcome *)obj, obj->txid));
+        else
+        if (obj->marketop == 'T')
+           batch.Write(make_pair(obj->marketop, it->first),
+               make_pair(*(marketTrade *)obj, obj->txid));
+        else
+        if (obj->marketop == 'V')
+           batch.Write(make_pair(obj->marketop, it->first),
+               make_pair(*(marketVote *)obj, obj->txid));
+    }
+    return WriteBatch(batch);
+}
+
+bool CMarketTreeDB::WriteFlag(const std::string &name, bool fValue) {
+    return Write(std::make_pair('F', name), fValue ? '1' : '0');
+}
+
+bool CMarketTreeDB::ReadFlag(const std::string &name, bool &fValue) {
+    char ch;
+    if (!Read(std::make_pair('F', name), ch))
+       return false;
+    fValue = ch == '1';
+    return true;
+}
+
+bool CMarketTreeDB::LoadMarketIndexGuts()
+{
+    boost::scoped_ptr<leveldb::Iterator> pcursor(NewIterator());
+
+    const char *types[6] = {"B", "D", "M", "O", "T", "V"}; 
+    for(uint32_t i=0; i < 6; i++) {
+        char char0 = types[i][0];
+        for(pcursor->Seek(types[i]); pcursor->Valid(); pcursor->Next()) {
+            boost::this_thread::interruption_point();
+            try {
+                leveldb::Slice slKey = pcursor->key();
+                CDataStream ssKey(slKey.data(), slKey.data()+slKey.size(), SER_DISK, CLIENT_VERSION);
+                char chType;
+                ssKey >> chType;
+
+                if (chType != char0)
+                    break;
+
+                uint256 objid;
+                ssKey >> objid;
+
+                leveldb::Slice slValue = pcursor->value();
+                CDataStream ssValue(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
+
+                if (chType == 'B') { 
+                    marketBranch *obj = new marketBranch;
+                    ssValue >> *obj;
+                    ssValue >> obj->txid;
+                    InsertMarketIndex(objid, obj);
+                } 
+                else
+                if (chType == 'D') { 
+                    marketDecision *obj = new marketDecision;
+                    ssValue >> *obj;
+                    ssValue >> obj->txid;
+                    InsertMarketIndex(objid, obj);
+                } 
+                else
+                if (chType == 'M') { 
+                    marketMarket *obj = new marketMarket;
+                    ssValue >> *obj;
+                    ssValue >> obj->txid;
+                    InsertMarketIndex(objid, obj);
+                } 
+                else
+                if (chType == 'O') { 
+                    marketOutcome *obj = new marketOutcome;
+                    ssValue >> *obj;
+                    ssValue >> obj->txid;
+                    InsertMarketIndex(objid, obj);
+                } 
+                else
+                if (chType == 'T') { 
+                    marketTrade *obj = new marketTrade;
+                    ssValue >> *obj;
+                    ssValue >> obj->txid;
+                    InsertMarketIndex(objid, obj);
+                } 
+                else
+                if (chType == 'V') { 
+                    marketVote *obj = new marketVote;
+                    ssValue >> *obj;
+                    ssValue >> obj->txid;
+                    InsertMarketIndex(objid, obj);
+                } 
+            } catch (const std::exception& e) {
+                 return error("%s: %s", __func__, e.what());
+            }
+        }
+    }
+
+    return true;
+}
+

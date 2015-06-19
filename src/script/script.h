@@ -159,6 +159,8 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
+    // market
+    OP_MARKET = 0xc0,
 
     // template matching params
     OP_SMALLDATA = 0xf9,
@@ -579,6 +581,8 @@ public:
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
     bool IsPayToScriptHash() const;
+    bool IsMarketScript(vector<unsigned char> &) const;
+    bool IsMarketScript(void) const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly() const;

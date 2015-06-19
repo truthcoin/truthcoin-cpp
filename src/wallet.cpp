@@ -4,8 +4,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "wallet.h"
-
+#include <assert.h>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/thread.hpp>
 #include "base58.h"
 #include "checkpoints.h"
 #include "coincontrol.h"
@@ -15,11 +16,9 @@
 #include "timedata.h"
 #include "util.h"
 #include "utilmoneystr.h"
+#include "wallet.h"
 
-#include <assert.h>
-
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/thread.hpp>
+extern CWallet* pwalletMain;
 
 using namespace std;
 
@@ -1152,16 +1151,23 @@ CAmount CWallet::GetImmatureWatchOnlyBalance() const
 /**
  * populate vCoins with vector of available COutputs.
  */
-void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const CCoinControl *coinControl) const
+void CWallet::AvailableCoins(
+    const std::string &strAccount, 
+    vector<COutput>& vCoins,
+    bool fOnlyConfirmed,
+    const CCoinControl *coinControl) const
 {
     vCoins.clear();
-
     {
         LOCK2(cs_main, cs_wallet);
-        for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
+        map<uint256, CWalletTx>::const_iterator it;
+        for(it=mapWallet.begin(); it != mapWallet.end(); ++it)
         {
-            const uint256& wtxid = it->first;
-            const CWalletTx* pcoin = &(*it).second;
+            const uint256 &wtxid = it->first;
+            const CWalletTx *pcoin = &it->second;
+
+            if (!pcoin->vout.size())
+                continue;
 
             if (!IsFinalTx(*pcoin))
                 continue;
@@ -1176,12 +1182,56 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             if (nDepth < 0)
                 continue;
 
-            for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
+            // skip market txs when not a branchid account
+            bool isMarketTx = pcoin->vout[0].scriptPubKey.IsMarketScript();
+            if ((isMarketTx) && (strAccount.size() != 64))
+                continue;
+
+            for (unsigned int i=0; i < pcoin->vout.size(); i++) {
+                if (IsSpent(wtxid, i))
+                    continue;
+
                 isminetype mine = IsMine(pcoin->vout[i]);
-                if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO &&
-                    !IsLockedCoin((*it).first, i) && pcoin->vout[i].nValue > 0 &&
-                    (!coinControl || !coinControl->HasSelected() || coinControl->IsSelected((*it).first, i)))
-                        vCoins.push_back(COutput(pcoin, i, nDepth, (mine & ISMINE_SPENDABLE) != ISMINE_NO));
+                if (mine == ISMINE_NO)
+                    continue;
+
+                if (IsLockedCoin(it->first, i))
+                    continue;
+
+                if (pcoin->vout[i].nValue <= 0)
+                    continue;
+
+                if (coinControl
+                        && coinControl->HasSelected()
+                        && !coinControl->IsSelected(it->first, i))
+                    continue;
+
+                // get account for this address
+                string account;
+                CTxDestination dest;
+                if (!ExtractDestination(pcoin->vout[i].scriptPubKey, dest))
+                    continue;
+                CTruthcoinAddress addr;
+                if (!addr.Set(dest))
+                    continue;
+                std::map<CTxDestination, CAddressBookData>::const_iterator addrit
+                    = pwalletMain->mapAddressBook.find(addr.Get());
+                if (addrit != pwalletMain->mapAddressBook.end())
+                    account = addrit->second.name;
+
+                // if strAccount was set, only look for those coins in that account
+                if (strAccount.size()) {
+                    if (account != strAccount)
+                        continue;
+                }
+
+                // if account was not set, do not look at 64-byte (branchid) accounts
+                if (!strAccount.size()) {
+                    if (account.size() == 64)
+                        continue;
+                }
+
+                vCoins.push_back(COutput(pcoin, i, nDepth, (mine & ISMINE_SPENDABLE) != ISMINE_NO));
             }
         }
     }
@@ -1233,8 +1283,13 @@ static void ApproximateBestSubset(vector<pair<CAmount, pair<const CWalletTx*,uns
     }
 }
 
-bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int nConfTheirs, vector<COutput> vCoins,
-                                 set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, CAmount& nValueRet) const
+bool CWallet::SelectCoinsMinConf(
+    const CAmount& nTargetValue,
+    int nConfMine,
+    int nConfTheirs,
+    vector<COutput> vCoins,
+    set<pair<const CWalletTx*,unsigned int> >& setCoinsRet,
+    CAmount& nValueRet) const
 {
     setCoinsRet.clear();
     nValueRet = 0;
@@ -1334,10 +1389,15 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     return true;
 }
 
-bool CWallet::SelectCoins(const CAmount& nTargetValue, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, CAmount& nValueRet, const CCoinControl* coinControl) const
+bool CWallet::SelectCoins(
+    const std::string &strAccount,
+    const CAmount& nTargetValue,
+    set<pair<const CWalletTx*,unsigned int> >& setCoinsRet,
+    CAmount& nValueRet,
+    const CCoinControl* coinControl) const
 {
     vector<COutput> vCoins;
-    AvailableCoins(vCoins, true, coinControl);
+    AvailableCoins(strAccount, vCoins, true, coinControl);
 
     // coin control -> return all selected outputs (we want all selected to go into the transaction for sure)
     if (coinControl && coinControl->HasSelected())
@@ -1357,11 +1417,15 @@ bool CWallet::SelectCoins(const CAmount& nTargetValue, set<pair<const CWalletTx*
             (bSpendZeroConfChange && SelectCoinsMinConf(nTargetValue, 0, 1, vCoins, setCoinsRet, nValueRet)));
 }
 
-
-
-
-bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
-                                CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(
+    const vector<pair<CScript, CAmount> >& vecSend,
+    const std::string& strAccount,
+    CWalletTx& wtxNew,
+    CReserveKey& reservekey,
+    CAmount& nFeeRet,
+    std::string& strFailReason,
+    CTxDestination& txDestChange,
+    const CCoinControl* coinControl)
 {
     CAmount nValue = 0;
     BOOST_FOREACH (const PAIRTYPE(CScript, CAmount)& s, vecSend)
@@ -1432,7 +1496,7 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
                 // Choose coins to use
                 set<pair<const CWalletTx*,unsigned int> > setCoins;
                 CAmount nValueIn = 0;
-                if (!SelectCoins(nTotalValue, setCoins, nValueIn, coinControl))
+                if (!SelectCoins(strAccount, nTotalValue, setCoins, nValueIn, coinControl))
                 {
                     strFailReason = _("Insufficient funds");
                     return false;
@@ -1447,7 +1511,6 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
                 }
 
                 CAmount nChange = nValueIn - nValue - nFeeRet;
-
                 if (nChange > 0)
                 {
                     // Fill a vout to ourself
@@ -1474,8 +1537,9 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
                         bool ret;
                         ret = reservekey.GetReservedKey(vchPubKey);
                         assert(ret); // should never fail, as we just unlocked
+                        txDestChange = vchPubKey.GetID();
 
-                        scriptChange = GetScriptForDestination(vchPubKey.GetID());
+                        scriptChange = GetScriptForDestination(txDestChange);
                     }
 
                     CTxOut newTxOut(nChange, scriptChange);
@@ -1562,12 +1626,21 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
     return true;
 }
 
-bool CWallet::CreateTransaction(CScript scriptPubKey, const CAmount& nValue,
-                                CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl)
+bool CWallet::CreateTransaction(
+    CScript scriptPubKey,
+    const std::string& strAccount,
+    const CAmount& nValue,
+    CWalletTx& wtxNew,
+    CReserveKey& reservekey,
+    CAmount& nFeeRet,
+    std::string& strFailReason,
+    CTxDestination& txDestChange,
+    const CCoinControl* coinControl)
 {
     vector< pair<CScript, CAmount> > vecSend;
     vecSend.push_back(make_pair(scriptPubKey, nValue));
-    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, strFailReason, coinControl);
+    return CreateTransaction(vecSend, strAccount, wtxNew, reservekey, nFeeRet,
+        strFailReason, txDestChange, coinControl);
 }
 
 /**

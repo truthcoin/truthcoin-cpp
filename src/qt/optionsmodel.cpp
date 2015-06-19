@@ -59,7 +59,7 @@ void OptionsModel::Init()
 
     // Display
     if (!settings.contains("nDisplayUnit"))
-        settings.setValue("nDisplayUnit", TruthcoinUnits::BTC);
+        settings.setValue("nDisplayUnit", TruthcoinUnits::CSH);
     nDisplayUnit = settings.value("nDisplayUnit").toInt();
 
     if (!settings.contains("strThirdPartyTxUrls"))

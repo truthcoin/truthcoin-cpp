@@ -4,14 +4,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "script/standard.h"
-
 #include "pubkey.h"
+#include "script/standard.h"
 #include "script/script.h"
 #include "util.h"
 #include "utilstrencodings.h"
 
 #include <boost/foreach.hpp>
+#include <stdio.h>
 
 using namespace std;
 
@@ -30,6 +30,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_PUBKEYHASH: return "pubkeyhash";
     case TX_SCRIPTHASH: return "scripthash";
     case TX_MULTISIG: return "multisig";
+    case TX_MARKET: return "market";
     case TX_NULL_DATA: return "nulldata";
     }
     return NULL;
@@ -65,6 +66,15 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
     {
         typeRet = TX_SCRIPTHASH;
         vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
+        vSolutionsRet.push_back(hashBytes);
+        return true;
+    }
+
+    // Shortcut for market tx's, which must always be in a particular format
+    vector<unsigned char> hashBytes;
+    if (scriptPubKey.IsMarketScript(hashBytes))
+    {
+        typeRet = TX_MARKET;
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
@@ -167,6 +177,8 @@ int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned c
     case TX_NONSTANDARD:
     case TX_NULL_DATA:
         return -1;
+    case TX_MARKET:
+        return 0;
     case TX_PUBKEY:
         return 1;
     case TX_PUBKEYHASH:
@@ -317,3 +329,4 @@ CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)
     script << CScript::EncodeOP_N(keys.size()) << OP_CHECKMULTISIG;
     return script;
 }
+

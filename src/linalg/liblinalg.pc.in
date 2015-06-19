@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: liblinalg
+Description: Simple Linear Algebra Routines
+URL: https://github.com/truthcoin/
+Version: @PACKAGE_VERSION@
+Cflags: -I${includedir}
+Libs.private: @LINALG_LIBS@
+Libs: -L${libdir} -llinalg
+

@@ -348,6 +348,31 @@ static const CRPCCommand vRPCCommands[] =
     { "wallet",             "walletpassphrasechange", &walletpassphrasechange, true,      false,      true },
     { "wallet",             "walletpassphrase",       &walletpassphrase,       true,      false,      true },
 #endif // ENABLE_WALLET
+
+    /* Prediction Markets */
+    { "market",             "listbranches",           &listbranches,           false,     false,      true },
+    { "market",             "listdecisions",          &listdecisions,          false,     false,      true },
+    { "market",             "listmarkets",            &listmarkets,            false,     false,      true },
+    { "market",             "listoutcomes",           &listoutcomes,           false,     false,      true },
+    { "market",             "listtrades",             &listtrades,             false,     false,      true },
+    { "market",             "listvotes",              &listvotes,              false,     false,      true },
+
+    { "market",             "getbranch",              &getbranch,              false,     false,      true },
+    { "market",             "getdecision",            &getdecision,            false,     false,      true },
+    { "market",             "getmarket",              &getmarket,              false,     false,      true },
+    { "market",             "getoutcome",             &getoutcome,             false,     false,      true },
+    { "market",             "gettrade",               &gettrade,               false,     false,      true },
+    { "market",             "getvote",                &getvote,                false,     false,      true },
+    { "market",             "getballot",              &getballot,              false,     false,      true },
+
+    { "market",             "createbranch",           &createbranch,           false,     false,      true },
+    { "market",             "createdecision",         &createdecision,         false,     false,      true },
+    { "market",             "createmarket",           &createmarket,           false,     false,      true },
+    { "market",             "createtrade",            &createtrade,            false,     false,      true },
+    { "market",             "createvote",             &createvote,             false,     false,      true },
+
+    { "market", "getcreatemarketcapitalrequired", &getcreatemarketcapitalrequired, false, false,      true },
+    { "market", "getcreatetradecapitalrequired",  &getcreatetradecapitalrequired, false,  false,      true },
 };
 
 CRPCTable::CRPCTable()
@@ -356,7 +381,6 @@ CRPCTable::CRPCTable()
     for (vcidx = 0; vcidx < (sizeof(vRPCCommands) / sizeof(vRPCCommands[0])); vcidx++)
     {
         const CRPCCommand *pcmd;
-
         pcmd = &vRPCCommands[vcidx];
         mapCommands[pcmd->name] = pcmd;
     }

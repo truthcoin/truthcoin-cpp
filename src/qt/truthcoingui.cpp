@@ -75,6 +75,9 @@ TruthcoinGUI::TruthcoinGUI(const NetworkStyle *networkStyle, QWidget *parent) :
     appMenuBar(0),
     overviewAction(0),
     historyAction(0),
+    ballotAction(0),
+    decisionsAction(0),
+    marketAction(0),
     quitAction(0),
     sendCoinsAction(0),
     sendCoinsMenuAction(0),
@@ -281,6 +284,28 @@ void TruthcoinGUI::createActions(const NetworkStyle *networkStyle)
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
     tabGroup->addAction(historyAction);
 
+    marketAction = new QAction(SingleColorIcon(":/icons/market"), tr("&Markets"), this);
+    marketAction->setStatusTip(tr("Browse markets"));
+    marketAction->setToolTip(marketAction->statusTip());
+    marketAction->setCheckable(true);
+    marketAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
+    tabGroup->addAction(marketAction);
+
+    decisionsAction = new QAction(SingleColorIcon(":/icons/decisions"), tr("&Decisions"), this);
+    decisionsAction->setStatusTip(tr("Browse decisions"));
+    decisionsAction->setToolTip(decisionsAction->statusTip());
+    decisionsAction->setCheckable(true);
+    decisionsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
+    tabGroup->addAction(decisionsAction);
+
+    ballotAction = new QAction(SingleColorIcon(":/icons/ballot"), tr("&Ballot"), this);
+    ballotAction->setStatusTip(tr("See votes"));
+    ballotAction->setToolTip(ballotAction->statusTip());
+    ballotAction->setCheckable(true);
+    ballotAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
+    tabGroup->addAction(ballotAction);
+
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.
@@ -296,6 +321,12 @@ void TruthcoinGUI::createActions(const NetworkStyle *networkStyle)
     connect(receiveCoinsMenuAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
+    connect(ballotAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(ballotAction, SIGNAL(triggered()), this, SLOT(gotoBallotPage()));
+    connect(decisionsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(decisionsAction, SIGNAL(triggered()), this, SLOT(gotoDecisionsPage()));
+    connect(marketAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(marketAction, SIGNAL(triggered()), this, SLOT(gotoMarketPage()));
 #endif // ENABLE_WALLET
 
     quitAction = new QAction(TextColorIcon(":/icons/quit"), tr("E&xit"), this);
@@ -416,6 +447,9 @@ void TruthcoinGUI::createToolBars()
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(historyAction);
+        toolbar->addAction(marketAction);
+        toolbar->addAction(decisionsAction);
+        toolbar->addAction(ballotAction);
         overviewAction->setChecked(true);
     }
 }
@@ -494,6 +528,9 @@ void TruthcoinGUI::setWalletActionsEnabled(bool enabled)
     receiveCoinsAction->setEnabled(enabled);
     receiveCoinsMenuAction->setEnabled(enabled);
     historyAction->setEnabled(enabled);
+    ballotAction->setEnabled(enabled);
+    decisionsAction->setEnabled(enabled);
+    marketAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
@@ -610,6 +647,24 @@ void TruthcoinGUI::gotoHistoryPage()
 {
     historyAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHistoryPage();
+}
+
+void TruthcoinGUI::gotoBallotPage()
+{
+    ballotAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoBallotPage();
+}
+
+void TruthcoinGUI::gotoDecisionsPage()
+{
+    decisionsAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoDecisionsPage();
+}
+
+void TruthcoinGUI::gotoMarketPage()
+{
+    marketAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoMarketPage();
 }
 
 void TruthcoinGUI::gotoReceiveCoinsPage()

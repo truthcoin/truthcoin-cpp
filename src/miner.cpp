@@ -30,6 +30,122 @@ using namespace std;
 // TruthcoinMiner
 //
 
+extern std::map<uint256, marketBranch *> marketBranches;
+
+
+CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
+{
+    if (!branch)
+        return CTransaction();
+
+    if (height % branch->tau != 0)
+        return CTransaction();
+
+    /* retrieve outcome for this height */
+    /* if it exists, return its transaction */
+    std::map<uint256, marketOutcome *>::const_iterator oit;
+    for(oit=branch->outcomes.begin(); oit != branch->outcomes.end(); oit++)
+        if (oit->second->nHeight == height)
+            return oit->second->tx;
+
+    /* retreive ballot for this height (should already exist) */
+    std::map<uint32_t, marketBallot *>::const_iterator bit;
+    bit = branch->ballots.find(height);
+    if (bit == branch->ballots.end())
+        return CTransaction();
+    const marketBallot *ballot = bit->second;
+
+    /* index the ballot's votes via their keyIDs */
+    std::map<CKeyID, const marketVote *> votes;
+    std::map<uint256, marketVote *>::const_iterator vit;
+    for(vit = ballot->votes.begin(); vit != ballot->votes.end(); vit++)
+       votes[vit->second->keyID] = vit->second;
+
+    /* create new outcome */
+    struct marketOutcome *outcome = new marketOutcome;
+    outcome->branchid = branch->GetHash();
+    outcome->nDecisions = 0;
+    outcome->NA = 2016; /* if conflicts, to be changed (TODO) */
+    outcome->alpha = 0.10; /* should be a branch parameter  */
+    outcome->tol = 0.10; /* should be a branch parameter  */
+    std::map<uint256, marketDecision *>::const_iterator dit;
+    for(dit=branch->decisions.begin(); dit != branch->decisions.end(); dit++) {
+        const marketDecision *decision = dit->second;
+        uint32_t blocknum = decision->eventOverBy + branch->ballotTime
+            + branch->unsealTime;
+        if (!((height - branch->tau <= blocknum) && (blocknum < height)))
+            continue;
+        outcome->decisionIDs.push_back(dit->first);
+        outcome->isScaled.push_back(decision->isScaled);
+    }
+    outcome->voteMatrix.clear();
+    outcome->voteMatrix.resize(votes.size()*outcome->nDecisions, outcome->NA);
+
+    const CTransaction &tx = branch->tx;
+    for(uint32_t i=0; i < tx.vout.size(); i++) {
+        uint160 u;
+        vector<vector<unsigned char> > vSolutions;
+        txnouttype whichType;
+        int rc = (Solver(tx.vout[i].scriptPubKey, whichType, vSolutions))? 0: -1;
+        if (rc) {
+            if (whichType == TX_PUBKEY) {
+                CPubKey pubKey(vSolutions[0]);
+                if (pubKey.IsValid())
+                   u = Hash160(pubKey.begin(), pubKey.end());
+                else
+                   rc = -1;
+            } else if (whichType == TX_PUBKEYHASH)
+                u = uint160(vSolutions[0]);
+            else if (whichType == TX_SCRIPTHASH)
+                u = uint160(vSolutions[0]);
+            else 
+                rc = -1;
+        }
+        CKeyID keyID(u);
+        outcome->voterIDs.push_back(keyID);
+        outcome->oldRep.push_back(tx.vout[i].nValue);
+        std::map<CKeyID, const marketVote *>::const_iterator vit
+            = votes.find(keyID);
+        if ((!rc) && (vit != votes.end())) {
+            const marketVote *vote = vit->second;
+            const vector<uint256> &decisionIDs = vote->decisionIDs;
+            const vector<uint64_t> &decisionVotes = vote->decisionVotes;
+            if (decisionIDs.size() == decisionVotes.size()) {
+                for(uint32_t j=0; j < decisionIDs.size(); j++) {
+                    /* find this voter's response on that decision */
+                    uint64_t resp = outcome->NA;
+                    for(uint32_t k=0; k < decisionIDs.size(); k++)
+                        if (decisionIDs[k] == outcome->decisionIDs[j])
+                            { resp = decisionVotes[k]; break; }
+                    outcome->voteMatrix[ i*outcome->nDecisions + j] = resp;
+                }
+            }
+        }
+        outcome->nVoters++;
+    }
+
+    /* calculate the result */
+    int rc = outcome->calc();
+    if (rc < 0) /* something is wrong */
+        return CTransaction();
+
+    /* create the transaction to redistribute votecoins */
+    CMutableTransaction mtx;
+    for(uint32_t i=0; i < tx.vout.size(); i++) {
+        CKeyID keyID = outcome->voterIDs[i];
+        CScript script;
+        script << OP_DUP << OP_HASH160 << ToByteVector(keyID) << OP_EQUALVERIFY << OP_CHECKSIG;
+        mtx.vin.push_back(CTxIn(COutPoint(tx.GetHash(),i)));
+        mtx.vout.push_back(CTxOut(outcome->smoothedRep[i], script));
+    }
+    outcome->tx = mtx;
+
+    /* cache the new outcome */
+    branch->outcomes[ outcome->GetHash() ] = outcome;
+
+    return mtx;
+}
+
 //
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
@@ -113,6 +229,15 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
     pblock->vtx.push_back(CTransaction());
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOps.push_back(-1); // updated at end
+
+    // Create branches outcome txs
+    uint32_t height = chainActive.Height() + 1;
+    std::map<uint256, marketBranch *>::const_iterator bit;
+    for(bit=marketBranches.begin(); bit != marketBranches.end(); bit++) {
+        CTransaction btx = getOutcomeTx(bit->second,height);
+        if (btx.vout.size())
+            pblock->vtx.push_back(btx);
+    }
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);

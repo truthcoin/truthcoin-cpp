@@ -12,6 +12,9 @@
 
 class TruthcoinGUI;
 class ClientModel;
+class BallotView;
+class DecisionsView;
+class MarketView;
 class OverviewPage;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
@@ -59,9 +62,15 @@ private:
 
     OverviewPage *overviewPage;
     QWidget *transactionsPage;
+    QWidget *ballotPage;
+    QWidget *decisionsPage;
+    QWidget *marketPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
 
+    BallotView *ballotView;
+    DecisionsView *decisionsView;
+    MarketView *marketView;
     TransactionView *transactionView;
 
     QProgressDialog *progressDialog;
@@ -71,6 +80,12 @@ public slots:
     void gotoOverviewPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
+    /** Switch to ballot page */
+    void gotoBallotPage();
+    /** Switch to decisions page */
+    void gotoDecisionsPage();
+    /** Switch to market page */
+    void gotoMarketPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

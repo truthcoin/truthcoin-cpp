@@ -162,7 +162,7 @@ bool parseTruthcoinURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!TruthcoinUnits::parse(TruthcoinUnits::BTC, i->second, &rv.amount))
+                if(!TruthcoinUnits::parse(TruthcoinUnits::CSH, i->second, &rv.amount))
                 {
                     return false;
                 }
@@ -201,7 +201,7 @@ QString formatTruthcoinURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(TruthcoinUnits::format(TruthcoinUnits::BTC, info.amount, false, TruthcoinUnits::separatorNever));
+        ret += QString("?amount=%1").arg(TruthcoinUnits::format(TruthcoinUnits::CSH, info.amount, false, TruthcoinUnits::separatorNever));
         paramCount++;
     }
 

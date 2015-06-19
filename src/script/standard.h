@@ -63,6 +63,7 @@ enum txnouttype
     TX_PUBKEYHASH,
     TX_SCRIPTHASH,
     TX_MULTISIG,
+    TX_MARKET,
     TX_NULL_DATA,
 };
 

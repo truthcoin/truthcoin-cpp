@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libfdlibm
+Description: Implemenation of NETLIB's fdlibm library
+URL: http://www.netlib.org
+Version: @PACKAGE_VERSION@
+Cflags: -I${includedir}
+Libs.private: @FDLIBM_LIBS@
+Libs: -L${libdir} -lfdlibm
+
