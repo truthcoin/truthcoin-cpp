@@ -42,6 +42,7 @@ public:
 
     explicit MarketBranchWindow(QWidget *parent=0);
     void setModel(WalletModel *);
+    void setTableViewFocus(void);
 
 private:
     QLineEdit *filterDescription;
@@ -49,7 +50,7 @@ private:
     MarketView *marketView;
     MarketBranchTableModel *tableModel;
     QTableView *tableView;
-    MarketBranchFilterProxyModel *marketBranchProxyModel;
+    MarketBranchFilterProxyModel *proxyModel;
 
 public slots:
     void currentRowChanged(const QModelIndex &, const QModelIndex &);

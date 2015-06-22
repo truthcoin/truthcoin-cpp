@@ -48,7 +48,7 @@ private:
     MarketView *marketView;
     MarketDecisionTableModel *tableModel;
     QTableView *tableView;
-    MarketDecisionFilterProxyModel *marketDecisionProxyModel;
+    MarketDecisionFilterProxyModel *proxyModel;
 
 public slots:
     void currentRowChanged(const QModelIndex &, const QModelIndex &);

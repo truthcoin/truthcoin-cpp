@@ -32,16 +32,17 @@ class MarketTradeWindow
 public:
     enum ColumnWidths {
         ADDR_COLUMN_WIDTH = 180,
-        BUYSELL_COLUMN_WIDTH = 100,
+        BUYSELL_COLUMN_WIDTH = 60,
+        DECISIONSTATE_COLUMN_WIDTH = 60,
         NSHARES_COLUMN_WIDTH = 100,
         PRICE_COLUMN_WIDTH = 100,
-        DECISIONSTATE_COLUMN_WIDTH = 60,
         NONCE_COLUMN_WIDTH = 100,
     };
 
     explicit MarketTradeWindow(QWidget *parent=0);
     void setModel(WalletModel *);
     void onMarketChange(const marketBranch *, const marketDecision *, const marketMarket *);
+    const MarketTradeTableModel *getTradeModel(void) const { return tableModel; }
 
 private:
     QLineEdit *filterAddress;
@@ -49,7 +50,7 @@ private:
     MarketView *marketView;
     MarketTradeTableModel *tableModel;
     QTableView *tableView;
-    MarketTradeFilterProxyModel *marketTradeProxyModel;
+    MarketTradeFilterProxyModel *proxyModel;
 
 public slots:
     void currentRowChanged(const QModelIndex &, const QModelIndex &);

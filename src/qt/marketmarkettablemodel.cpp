@@ -86,6 +86,7 @@ MarketMarketTableModel::MarketMarketTableModel(CWallet *wallet, WalletModel *par
         << tr("Description")
         << tr("Tags")
         << tr("Maturation")
+        << tr("Decision IDs")
         ;
 }
 
@@ -134,6 +135,8 @@ QVariant MarketMarketTableModel::data(const QModelIndex &index, int role) const
             return formatTags(market);
         case Maturation:
             return formatMaturation(market);
+        case DecisionIDs:
+            return formatDecisionIDs(market);
         default:
             ;
         }
@@ -144,6 +147,8 @@ QVariant MarketMarketTableModel::data(const QModelIndex &index, int role) const
         return formatTitle(market);
     case DescriptionRole:
         return formatDescription(market);
+    case DecisionIDsRole:
+        return formatDecisionIDs(market);
     case TagsRole:
         return formatTags(market);
     case Qt::TextAlignmentRole:
@@ -182,6 +187,8 @@ QVariant MarketMarketTableModel::headerData(int section, Qt::Orientation orienta
                 return tr("Tags");
             case Maturation:
                 return tr("Maturation");
+            case DecisionIDs:
+                return tr("Decision IDs");
             }
         }
     }
@@ -213,7 +220,7 @@ Qt::ItemFlags MarketMarketTableModel::flags(const QModelIndex &index) const
 void
 MarketMarketTableModel::onDecisionChange(const marketBranch *branch, const marketDecision *decision)
 {
-    if (!priv || !branch || !decision)
+    if (!priv)
         return;
 
     /* erase cache */
@@ -222,6 +229,9 @@ MarketMarketTableModel::onDecisionChange(const marketBranch *branch, const marke
         priv->cached.clear();
         endRemoveRows();
     }
+
+    if (!branch || !decision)
+        return;
 
     /* new vector of markets for cache */
     std::vector<const marketMarket *> vec;
@@ -304,7 +314,20 @@ QString formatMaturation(const marketMarket *market)
 
 QString formatDecisionIDs(const marketMarket *market)
 {
-    return QString("");
+    const vector<uint256> &decisionIDs = market->decisionIDs;
+    const vector<uint8_t> &decisionFunctionIDs = market->decisionFunctionIDs;
+    if (decisionIDs.size() != decisionFunctionIDs.size())
+       return QString("");
+
+    QString str;
+    for(uint32_t i=0; i < decisionIDs.size(); i++) {
+       str += decisionIDs[i].ToString().c_str();
+       str += ':';
+       str += decisionFunctionIDToString( decisionFunctionIDs[i] ).c_str();
+       if (i + 1 != decisionIDs.size())
+          str += '\n';
+    }
+    return str;
 }
 
 QString formatDecisionFunctionIDs(const marketMarket *market)

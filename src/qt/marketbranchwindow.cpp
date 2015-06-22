@@ -19,11 +19,12 @@
 #include <QTableView>
 #include <QVBoxLayout>
 
+
 MarketBranchWindow::MarketBranchWindow(QWidget *parent)
     : marketView((MarketView *)parent),
     tableModel(0),
     tableView(0),
-    marketBranchProxyModel(0)
+    proxyModel(0)
 {
     setWindowTitle(tr("Branches"));
     setMinimumSize(800,200);
@@ -49,6 +50,7 @@ MarketBranchWindow::MarketBranchWindow(QWidget *parent)
     vlayout->addLayout(glayout);
     vlayout->addWidget(view);
     vlayout->setSpacing(0);
+    int width = view->verticalScrollBar()->sizeHint().width();
 
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     view->setTabKeyNavigation(false);
@@ -68,11 +70,11 @@ void MarketBranchWindow::setModel(WalletModel *model)
     if (!tableModel)
         return;
 
-    marketBranchProxyModel = new MarketBranchFilterProxyModel(this);
-    marketBranchProxyModel->setSourceModel(tableModel);
+    proxyModel = new MarketBranchFilterProxyModel(this);
+    proxyModel->setSourceModel(tableModel);
 
     // tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    tableView->setModel(marketBranchProxyModel);
+    tableView->setModel(proxyModel);
     tableView->setAlternatingRowColors(true);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -97,26 +99,36 @@ void MarketBranchWindow::setModel(WalletModel *model)
        SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),
        this, SLOT(currentRowChanged(QModelIndex, QModelIndex)));
 
-    QModelIndex topLeft = tableModel->index(0, 0, QModelIndex());
-    tableView->setCurrentIndex(topLeft);
+    QModelIndex topLeft = proxyModel->index(0, 0, QModelIndex());
+    int columnCount = proxyModel->columnCount();
+    if (columnCount > 0) {
+        QModelIndex topRight = proxyModel->index(0, columnCount-1, QModelIndex());
+        QItemSelection selection(topLeft, topRight);
+        tableView->selectionModel()->select(selection, QItemSelectionModel::Select);
+    }
     tableView->setFocus();
-
     currentRowChanged(topLeft, topLeft);
+}
+
+void MarketBranchWindow::setTableViewFocus(void)
+{
+    if (tableView)
+        tableView->setFocus();
 }
 
 void MarketBranchWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
 {
-    if (!tableView || !tableModel)
+    if (!tableModel || !marketView || !proxyModel)
         return;
 
-    uint32_t row = curr.row();
+    int row = proxyModel->mapToSource(curr).row();
     const marketBranch *branch = tableModel->index(row);
     marketView->onBranchChange(branch);
 }
 
 void MarketBranchWindow::filterDescriptionChanged(const QString &str)
 {
-    if (marketBranchProxyModel)
-        marketBranchProxyModel->setFilterDescription(str);
+    if (proxyModel)
+        proxyModel->setFilterDescription(str);
 }
 

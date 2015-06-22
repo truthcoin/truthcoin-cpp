@@ -36,6 +36,7 @@ public:
         DESCRIPTION_COLUMN_WIDTH = 200,
         TAGS_COLUMN_WIDTH = 100,
         MATURATION_COLUMN_WIDTH = 60,
+        DECISIONIDS_COLUMN_WIDTH = 200,
     };
 
     explicit MarketMarketWindow(QWidget *parent=0);
@@ -51,7 +52,7 @@ private:
     MarketView *marketView;
     MarketMarketTableModel *tableModel;
     QTableView *tableView;
-    MarketMarketFilterProxyModel *marketMarketProxyModel;
+    MarketMarketFilterProxyModel *proxyModel;
 
 public slots:
     void currentRowChanged(const QModelIndex &, const QModelIndex &);

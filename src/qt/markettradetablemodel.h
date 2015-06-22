@@ -30,9 +30,9 @@ public:
     enum ColumnIndex {
         Address = 0,
         BuySell = 1,
-        NShares = 2,
-        Price = 3,
-        DecisionState = 4,
+        DecisionState = 2,
+        NShares = 3,
+        Price = 4,
         Nonce = 5,
         BlockNumber = 6,
         Hash = 7,
@@ -51,6 +51,7 @@ public:
     QModelIndex index(int row, int column, const QModelIndex& parent=QModelIndex()) const;
     Qt::ItemFlags flags(const QModelIndex &) const;
     void onMarketChange(const marketBranch *, const marketDecision *, const marketMarket *);
+    void getData(double **X, double **Y, unsigned int *N) const;
 
 private:
     CWallet *wallet;

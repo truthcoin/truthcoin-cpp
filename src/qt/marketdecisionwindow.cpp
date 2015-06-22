@@ -23,7 +23,7 @@ MarketDecisionWindow::MarketDecisionWindow(QWidget *parent)
     : marketView((MarketView *)parent),
     tableModel(0),
     tableView(0),
-    marketDecisionProxyModel(0)
+    proxyModel(0)
 {
     setWindowTitle(tr("Decisions"));
     setMinimumSize(800,200);
@@ -58,6 +58,7 @@ MarketDecisionWindow::MarketDecisionWindow(QWidget *parent)
     vlayout->addLayout(glayout);
     vlayout->addWidget(view);
     vlayout->setSpacing(0);
+    int width = view->verticalScrollBar()->sizeHint().width();
 
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     view->setTabKeyNavigation(false);
@@ -77,11 +78,11 @@ void MarketDecisionWindow::setModel(WalletModel *model)
     if (!tableModel)
         return;
 
-    marketDecisionProxyModel = new MarketDecisionFilterProxyModel(this);
-    marketDecisionProxyModel->setSourceModel(tableModel);
+    proxyModel = new MarketDecisionFilterProxyModel(this);
+    proxyModel->setSourceModel(tableModel);
 
     // tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    tableView->setModel(marketDecisionProxyModel);
+    tableView->setModel(proxyModel);
     tableView->setAlternatingRowColors(true);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -104,36 +105,46 @@ void MarketDecisionWindow::setModel(WalletModel *model)
 
 void MarketDecisionWindow::onBranchChange(const marketBranch *branch)
 {
-    if (!branch || !tableModel)
+    if (!tableModel || !proxyModel)
         return;
 
     tableModel->onBranchChange(branch);
-
-    QModelIndex topLeft = tableModel->index(0, 0, QModelIndex());
-    tableView->setCurrentIndex(topLeft);
-    currentRowChanged(topLeft, topLeft);
+    if (proxyModel->rowCount()) {
+        QModelIndex topLeft = proxyModel->index(0, 0, QModelIndex());
+        int columnCount = proxyModel->columnCount();
+        if (columnCount > 0) {
+            QModelIndex topRight = proxyModel->index(0, columnCount-1, QModelIndex());
+            QItemSelection selection(topLeft, topRight);
+            tableView->selectionModel()->select(selection, QItemSelectionModel::Select);
+        }
+        tableView->setFocus();
+        currentRowChanged(topLeft, topLeft);
+    }
+    else {
+       marketView->onDecisionChange(0);
+    }
 }
 
 void MarketDecisionWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
 {
-    if (!tableView || !tableModel)
+    if (!tableModel || !marketView || !proxyModel)
         return;
 
-    uint32_t row = curr.row();
+    int row = proxyModel->mapToSource(curr).row();
     const marketDecision *decision = tableModel->index(row);
     marketView->onDecisionChange(decision);
 }
 
 void MarketDecisionWindow::filterAddressChanged(const QString &str)
 {
-    if (marketDecisionProxyModel)
-        marketDecisionProxyModel->setFilterAddress(str);
+    if (proxyModel)
+        proxyModel->setFilterAddress(str);
 }
 
 void MarketDecisionWindow::filterPromptChanged(const QString &str)
 {
-    if (marketDecisionProxyModel)
-        marketDecisionProxyModel->setFilterPrompt(str);
+    if (proxyModel)
+        proxyModel->setFilterPrompt(str);
 }
 
 

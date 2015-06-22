@@ -198,7 +198,7 @@ Qt::ItemFlags MarketDecisionTableModel::flags(const QModelIndex &index) const
 void
 MarketDecisionTableModel::onBranchChange(const marketBranch *branch)
 {
-    if (!priv || !branch)
+    if (!priv)
         return;
 
     /* erase cache */
@@ -207,6 +207,9 @@ MarketDecisionTableModel::onBranchChange(const marketBranch *branch)
         priv->cached.clear();
         endRemoveRows();
     }
+
+    if (!branch)
+        return;
 
     /* new vector of decisions for cache */
     std::vector<const marketDecision *> vec;
@@ -271,6 +274,11 @@ QString formatMinimum(const marketDecision *decision)
 QString formatAnswerOptional(const marketDecision *decision)
 {
     return QString(decision->answerOptionality? "Optional": "Not Optional");
+}
+
+QString formatBranchID(const marketDecision *decision)
+{
+    return QString::fromStdString(decision->branchid.ToString());
 }
 
 QString formatHash(const marketDecision *decision)

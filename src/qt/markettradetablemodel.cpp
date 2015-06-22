@@ -28,9 +28,9 @@
 static int column_alignments[] = {
         Qt::AlignLeft|Qt::AlignVCenter, /* Address */
         Qt::AlignRight|Qt::AlignVCenter, /* BuySell */
+        Qt::AlignRight|Qt::AlignVCenter, /* DecisionState */
         Qt::AlignRight|Qt::AlignVCenter, /* NShares */
         Qt::AlignRight|Qt::AlignVCenter, /* Price */
-        Qt::AlignRight|Qt::AlignVCenter, /* DecisionState */
         Qt::AlignRight|Qt::AlignVCenter, /* Nonce */
         Qt::AlignRight|Qt::AlignVCenter, /* BlockNum */
     };
@@ -79,9 +79,9 @@ MarketTradeTableModel::MarketTradeTableModel(CWallet *wallet, WalletModel *paren
     columns
         << tr("Address")
         << tr("Buy/Sell")
+        << tr("DecisionState")
         << tr("Shares")
         << tr("Price")
-        << tr("DecisionState")
         << tr("Nonce")
         << tr("Block")
         ;
@@ -119,12 +119,12 @@ QVariant MarketTradeTableModel::data(const QModelIndex &index, int role) const
             return formatAddress(trade);
         case BuySell:
             return formatBuySell(trade);
+        case DecisionState:
+            return formatDecisionState(trade);
         case NShares:
             return formatNShares(trade);
         case Price:
             return formatPrice(trade);
-        case DecisionState:
-            return formatDecisionState(trade);
         case Nonce:
             return formatNonce(trade);
         case BlockNumber:
@@ -159,12 +159,12 @@ QVariant MarketTradeTableModel::headerData(int section, Qt::Orientation orientat
                 return tr("Address");
             case BuySell:
                 return tr("Buy or Sell");
+            case DecisionState:
+                return tr("DecisionState");
             case NShares:
                 return tr("Number of Shares");
             case Price:
                 return tr("Price per Share");
-            case DecisionState:
-                return tr("DecisionState");
             case Nonce:
                 return tr("Nonce");
             case BlockNumber:
@@ -197,10 +197,12 @@ Qt::ItemFlags MarketTradeTableModel::flags(const QModelIndex &index) const
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-void
-MarketTradeTableModel::onMarketChange(const marketBranch *branch, const marketDecision *decision, const marketMarket *market)
+void MarketTradeTableModel::onMarketChange(
+    const marketBranch *branch,
+    const marketDecision *decision,
+    const marketMarket *market)
 {
-    if (!priv || !branch || !decision || !market)
+    if (!priv)
         return;
 
     /* erase cache */
@@ -209,6 +211,9 @@ MarketTradeTableModel::onMarketChange(const marketBranch *branch, const marketDe
         priv->cached.clear();
         endRemoveRows();
     }
+
+    if (!branch || !decision || !market)
+        return;
 
     /* new vector of trades for cache */
     std::vector<const marketTrade *> vec;
@@ -222,6 +227,32 @@ MarketTradeTableModel::onMarketChange(const marketBranch *branch, const marketDe
         for(uint32_t i=0; i < vec.size(); i++)
             priv->cached.append(vec[i]);
         endInsertRows();
+    }
+}
+
+void MarketTradeTableModel::getData(double **Xptr, double **Yptr, unsigned int *Nptr) const
+{
+    if (!Xptr || !Yptr || !Nptr || !priv)
+        return;
+
+    const QList<const marketTrade *> &cached = priv->cached;
+    unsigned int N = *Nptr = cached.size();
+    if (N) {
+        double *X = *Xptr = new double [N];
+        double *Y = *Yptr = new double [N];
+        unsigned int count = 0;
+        for(unsigned int i=0; i < N; i++) {
+            const marketTrade *trade = cached[i];
+            uint8_t is_buy = (trade->decisionState == 1)? 1: 0;
+            uint8_t is_sell = (trade->decisionState == 0)? 1: 0;
+            if (is_buy || is_sell) {
+               double price = trade->price * 1e-8;
+               X[count] = (double) trade->nHeight;
+               Y[count] = (is_buy)? price: (1.0 - price);
+               count++;
+            }
+        }
+        *Nptr = count;
     }
 }
 
@@ -274,7 +305,7 @@ QString formatNonce(const marketTrade *trade)
 QString formatBlockNumber(const marketTrade *trade)
 {
     char tmp[32];
-    snprintf(tmp, sizeof(tmp), "%.u", trade->blockNum);
+    snprintf(tmp, sizeof(tmp), "%06u", trade->nHeight);
     return QString(tmp);
 }
 

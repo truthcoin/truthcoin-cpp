@@ -69,6 +69,7 @@ QString formatIsScaled(const marketDecision *);
 QString formatMinimum(const marketDecision *);
 QString formatMaximum(const marketDecision *);
 QString formatAnswerOptional(const marketDecision *);
+QString formatBranchID(const marketDecision *);
 QString formatHash(const marketDecision *);
 
 #endif // TRUTHCOIN_QT_MARKETDECISIONTABLEMODEL_H

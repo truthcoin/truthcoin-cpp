@@ -48,6 +48,7 @@ public:
         TitleRole,
         DescriptionRole,
         TagsRole,
+        DecisionIDsRole,
     };
 
     int rowCount(const QModelIndex &) const;

@@ -35,7 +35,8 @@
 #include <QVBoxLayout>
 
 MarketView::MarketView(QWidget *parent)
-    : QWidget(parent), model(0), branch(0), decision(0), market(0)
+    : QWidget(parent), model(0), branch(0), decision(0), market(0),
+      graphWidget(0)
 {
     /* window is a vlayout containing */
     /*    Grid layout                 */
@@ -93,7 +94,6 @@ MarketView::MarketView(QWidget *parent)
     /* Horizontal Layout */ 
 
     QGroupBox *newTrade = new QGroupBox(tr("New Trade")); 
-    // newTrade->setSizePolicy(QSizePolicy::Ignored, newTrade->sizePolicy().verticalPolicy());
 
     QGridLayout *tglayout = new QGridLayout();
     buyRadioButton  = new QRadioButton(tr("Buy"));
@@ -123,12 +123,12 @@ MarketView::MarketView(QWidget *parent)
 
     /* Trade Tab */
     QTabWidget *tabs = new QTabWidget(this);
-    // tabs->setSizePolicy(QSizePolicy::Ignored, tabs->sizePolicy().verticalPolicy());
     QWidget *page0 = new QWidget();
     QWidget *page1 = new QWidget();
     QWidget *page2 = new QWidget();
     QWidget *page3 = new QWidget();
-    QWidget *page4 = new MarketViewGraph(this);
+    graphWidget = new MarketViewGraph(this);
+    QWidget *page4 = (QWidget *) graphWidget;
 
     initBranchTab(page0);
     initDecisionTab(page1);
@@ -174,11 +174,11 @@ void MarketView::initBranchTab(QWidget *page)
     for(uint32_t i=0; i < MARKETBRANCH_NLABLES; i++) {
        QLabel *key = new QLabel(tr(labelnames[i]));
        key->setTextInteractionFlags(Qt::TextSelectableByMouse);
-       key->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       key->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        glayout->addWidget(key, /* row */i, /* col */0);
 
        QLabel *value = &branchTabLabels[i];
-       value->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       value->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        value->setTextInteractionFlags(Qt::TextSelectableByMouse);
        value->setSizePolicy(QSizePolicy::Ignored, value->sizePolicy().verticalPolicy());
        glayout->addWidget(value, /* row */i, /* col */1);
@@ -211,17 +211,18 @@ void MarketView::initDecisionTab(QWidget *page)
         "Minimum: ",
         "Maximum: ",
         "Answer Is Optional: ",
+        "Branch: ",
         "Hash: ",
     };
 
     for(uint32_t i=0; i < MARKETDECISION_NLABLES; i++) {
        QLabel *key = new QLabel(tr(labelnames[i]));
-       key->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       key->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        key->setTextInteractionFlags(Qt::TextSelectableByMouse);
        glayout->addWidget(key, /* row */i, /* col */0);
 
        QLabel *value = &decisionTabLabels[i];
-       value->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       value->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        value->setTextInteractionFlags(Qt::TextSelectableByMouse);
        value->setWordWrap(true);
        value->setSizePolicy(QSizePolicy::Ignored, value->sizePolicy().verticalPolicy());
@@ -255,17 +256,18 @@ void MarketView::initMarketTab(QWidget *page)
         "Description: ",
         "Tags: ",
         "Maturation: ",
+        "Decision IDs: ",
         "Hash: ",
     };
 
     for(uint32_t i=0; i < MARKETMARKET_NLABLES; i++) {
        QLabel *key = new QLabel(tr(labelnames[i]));
-       key->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       key->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        key->setTextInteractionFlags(Qt::TextSelectableByMouse);
        glayout->addWidget(key, /* row */i, /* col */0);
 
        QLabel *value = &marketTabLabels[i];
-       value->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       value->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        value->setTextInteractionFlags(Qt::TextSelectableByMouse);
        value->setWordWrap(true);
        value->setSizePolicy(QSizePolicy::Ignored, value->sizePolicy().verticalPolicy());
@@ -303,12 +305,12 @@ void MarketView::initTradeTab(QWidget *page)
 
     for(uint32_t i=0; i < MARKETTRADE_NLABLES; i++) {
        QLabel *key = new QLabel(tr(labelnames[i]));
-       key->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       key->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        key->setTextInteractionFlags(Qt::TextSelectableByMouse);
        glayout->addWidget(key, /* row */i, /* col */0);
 
        QLabel *value = &tradeTabLabels[i];
-       value->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+       value->setAlignment(Qt::AlignLeft|Qt::AlignTop);
        value->setTextInteractionFlags(Qt::TextSelectableByMouse);
        value->setWordWrap(true);
        glayout->addWidget(value, /* row */i, /* col */1);
@@ -333,6 +335,7 @@ void MarketView::showBranchWindow(void)
     branchWindow->show();
     branchWindow->raise();
     branchWindow->setFocus();
+    branchWindow->setTableViewFocus();
 }
 
 void MarketView::showDecisionWindow(void)
@@ -374,75 +377,92 @@ void MarketView::setModel(WalletModel *model)
 
 void MarketView::onBranchChange(const marketBranch *branch)
 {
+    this->branch = branch;
+
     if (!branch) {
+        branchLabels[1]->setText("");
+
         for(uint32_t i=0; i < MARKETBRANCH_NLABLES; i++)
            branchTabLabels[i].setText("");
-        return;
+    } else {
+        branchLabels[1]->setText( QString::fromStdString(branch->name) );
+
+        branchTabLabels[0].setText( formatName(branch) );
+        branchTabLabels[1].setText( formatDescription(branch) );
+        branchTabLabels[2].setText( formatBaseListingFee(branch) );
+        branchTabLabels[3].setText( formatFreeDecisions(branch) );
+        branchTabLabels[4].setText( formatTargetDecisions(branch) );
+        branchTabLabels[5].setText( formatMaxDecisions(branch) );
+        branchTabLabels[6].setText( formatMinTradingFee(branch) );
+        branchTabLabels[7].setText( formatTau(branch) );
+        branchTabLabels[8].setText( formatBallotTime(branch) );
+        branchTabLabels[9].setText( formatUnsealTime(branch) );
+        branchTabLabels[10].setText( formatConsensusThreshold(branch) );
+        branchTabLabels[11].setText( formatHash(branch) );
     }
-
-    this->branch = branch;
-    branchLabels[1]->setText( QString::fromStdString(branch->name) );
-
-    branchTabLabels[0].setText( formatName(branch) );
-    branchTabLabels[1].setText( formatDescription(branch) );
-    branchTabLabels[2].setText( formatBaseListingFee(branch) );
-    branchTabLabels[3].setText( formatFreeDecisions(branch) );
-    branchTabLabels[4].setText( formatTargetDecisions(branch) );
-    branchTabLabels[5].setText( formatMaxDecisions(branch) );
-    branchTabLabels[6].setText( formatMinTradingFee(branch) );
-    branchTabLabels[7].setText( formatTau(branch) );
-    branchTabLabels[8].setText( formatBallotTime(branch) );
-    branchTabLabels[9].setText( formatUnsealTime(branch) );
-    branchTabLabels[10].setText( formatConsensusThreshold(branch) );
-    branchTabLabels[11].setText( formatHash(branch) );
 
     decisionWindow->onBranchChange(branch);
 }
 
 void MarketView::onDecisionChange(const marketDecision *decision)
 {
+    this->decision = decision;
+
     if (!decision) {
+        decisionLabels[1]->setText("");
+
         for(uint32_t i=0; i < MARKETDECISION_NLABLES; i++)
            decisionTabLabels[i].setText("");
-        return;
+    } else {
+        decisionLabels[1]->setText( QString::fromStdString(decision->prompt) );
+
+        decisionTabLabels[0].setText( formatAddress(decision) );
+        decisionTabLabels[1].setText( formatPrompt(decision) );
+        decisionTabLabels[2].setText( formatEventOverBy(decision) );
+        decisionTabLabels[3].setText( formatIsScaled(decision) );
+        decisionTabLabels[4].setText( formatMinimum(decision) );
+        decisionTabLabels[5].setText( formatMaximum(decision) );
+        decisionTabLabels[6].setText( formatAnswerOptional(decision) );
+        decisionTabLabels[7].setText( formatBranchID(decision) );
+        decisionTabLabels[8].setText( formatHash(decision) );
     }
-
-    this->decision = decision;
-    decisionLabels[1]->setText( QString::fromStdString(decision->prompt) );
-
-    decisionTabLabels[0].setText( formatAddress(decision) );
-    decisionTabLabels[1].setText( formatPrompt(decision) );
-    decisionTabLabels[2].setText( formatEventOverBy(decision) );
-    decisionTabLabels[3].setText( formatIsScaled(decision) );
-    decisionTabLabels[4].setText( formatMinimum(decision) );
-    decisionTabLabels[5].setText( formatMaximum(decision) );
-    decisionTabLabels[6].setText( formatAnswerOptional(decision) );
-    decisionTabLabels[7].setText( formatHash(decision) );
 
     marketWindow->onDecisionChange(branch, decision);
 }
 
 void MarketView::onMarketChange(const marketMarket *market)
 {
+    this->market = market;
+
     if (!market) {
+        marketLabels[1]->setText("");
+
         for(uint32_t i=0; i < MARKETMARKET_NLABLES; i++)
            marketTabLabels[i].setText("");
-        return;
+    } else {
+        marketLabels[1]->setText( QString::fromStdString(market->title) );
+
+        marketTabLabels[0].setText( formatAddress(market) );
+        marketTabLabels[1].setText( formatB(market) );
+        marketTabLabels[2].setText( formatTradingFee(market) );
+        marketTabLabels[3].setText( formatTitle(market) );
+        marketTabLabels[4].setText( formatDescription(market) );
+        marketTabLabels[5].setText( formatTags(market) );
+        marketTabLabels[6].setText( formatMaturation(market) );
+        marketTabLabels[7].setText( formatDecisionIDs(market) );
+        marketTabLabels[8].setText( formatHash(market) );
     }
 
-    this->market = market;
-    marketLabels[1]->setText( QString::fromStdString(market->title) );
-
-    marketTabLabels[0].setText( formatAddress(market) );
-    marketTabLabels[1].setText( formatB(market) );
-    marketTabLabels[2].setText( formatTradingFee(market) );
-    marketTabLabels[3].setText( formatTitle(market) );
-    marketTabLabels[4].setText( formatDescription(market) );
-    marketTabLabels[5].setText( formatTags(market) );
-    marketTabLabels[6].setText( formatMaturation(market) );
-    marketTabLabels[7].setText( formatHash(market) );
-
     tradeWindow->onMarketChange(branch, decision, market);
+
+    const MarketTradeTableModel *tableModel = tradeWindow->getTradeModel();
+    if (tableModel) {
+        double *X = (double *)0;
+        double *Y = (double *)0;
+        unsigned int N = 0;
+        tableModel->getData(&X, &Y, &N);
+        graphWidget->setData(X, Y, N);
+    }
 }
 
 void MarketView::onTradeChange(const marketTrade *trade)

@@ -24,7 +24,7 @@ MarketMarketWindow::MarketMarketWindow(QWidget *parent)
     : marketView((MarketView *)parent),
     tableModel(0),
     tableView(0),
-    marketMarketProxyModel(0)
+    proxyModel(0)
 {
     setWindowTitle(tr("Markets"));
     setMinimumSize(800,200);
@@ -77,6 +77,7 @@ MarketMarketWindow::MarketMarketWindow(QWidget *parent)
     vlayout->addLayout(glayout);
     vlayout->addWidget(view);
     vlayout->setSpacing(0);
+    int width = view->verticalScrollBar()->sizeHint().width();
 
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     view->setTabKeyNavigation(false);
@@ -96,11 +97,11 @@ void MarketMarketWindow::setModel(WalletModel *model)
     if (!tableModel)
         return;
 
-    marketMarketProxyModel = new MarketMarketFilterProxyModel(this);
-    marketMarketProxyModel->setSourceModel(tableModel);
+    proxyModel = new MarketMarketFilterProxyModel(this);
+    proxyModel->setSourceModel(tableModel);
 
     // tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    tableView->setModel(marketMarketProxyModel);
+    tableView->setModel(proxyModel);
     tableView->setAlternatingRowColors(true);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -115,6 +116,7 @@ void MarketMarketWindow::setModel(WalletModel *model)
     tableView->setColumnWidth(MarketMarketTableModel::Description, DESCRIPTION_COLUMN_WIDTH);
     tableView->setColumnWidth(MarketMarketTableModel::Tags, TAGS_COLUMN_WIDTH);
     tableView->setColumnWidth(MarketMarketTableModel::Maturation, MATURATION_COLUMN_WIDTH);
+    tableView->setColumnWidth(MarketMarketTableModel::DecisionIDs, DECISIONIDS_COLUMN_WIDTH);
 
     connect(tableView->selectionModel(),
        SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),
@@ -123,47 +125,56 @@ void MarketMarketWindow::setModel(WalletModel *model)
 
 void MarketMarketWindow::onDecisionChange(const marketBranch *branch, const marketDecision *decision)
 {
-    if (!branch || !decision || !tableModel)
+    if (!tableModel || !proxyModel)
         return;
 
     tableModel->onDecisionChange(branch, decision);
-
-    QModelIndex topLeft = tableModel->index(0, 0, QModelIndex());
-    tableView->setCurrentIndex(topLeft);
-    currentRowChanged(topLeft, topLeft);
+    if (proxyModel->rowCount()) {
+        QModelIndex topLeft = proxyModel->index(0, 0, QModelIndex());
+        int columnCount = proxyModel->columnCount();
+        if (columnCount > 0) {
+            QModelIndex topRight = proxyModel->index(0, columnCount-1, QModelIndex());
+            QItemSelection selection(topLeft, topRight);
+            tableView->selectionModel()->select(selection, QItemSelectionModel::Select);
+        }
+        tableView->setFocus();
+        currentRowChanged(topLeft, topLeft);
+    } else {
+       marketView->onMarketChange(0);
+    }
 }
 
 void MarketMarketWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
 {
-    if (!tableView || !tableModel)
+    if (!tableModel || !marketView || !proxyModel)
         return;
 
-    uint32_t row = curr.row();
+    int row = proxyModel->mapToSource(curr).row();
     const marketMarket *market = tableModel->index(row);
     marketView->onMarketChange(market);
 }
 
 void MarketMarketWindow::filterAddressChanged(const QString &str)
 {
-    if (marketMarketProxyModel)
-        marketMarketProxyModel->setFilterAddress(str);
+    if (proxyModel)
+        proxyModel->setFilterAddress(str);
 }
 
 void MarketMarketWindow::filterTitleChanged(const QString &str)
 {
-    if (marketMarketProxyModel)
-        marketMarketProxyModel->setFilterTitle(str);
+    if (proxyModel)
+        proxyModel->setFilterTitle(str);
 }
 
 void MarketMarketWindow::filterDescriptionChanged(const QString &str)
 {
-    if (marketMarketProxyModel)
-        marketMarketProxyModel->setFilterDescription(str);
+    if (proxyModel)
+        proxyModel->setFilterDescription(str);
 }
 
 void MarketMarketWindow::filterTagChanged(const QString &str)
 {
-    if (marketMarketProxyModel)
-        marketMarketProxyModel->setFilterTag(str);
+    if (proxyModel)
+        proxyModel->setFilterTag(str);
 }
 

@@ -23,9 +23,16 @@ public:
     explicit MarketViewGraph(QWidget *parent = 0);
 
     void paintEvent(QPaintEvent *);
+    void setData(const double *X, const double *Y, unsigned int N);
 
 private:
     MarketView *marketView;
+
+    /* data */
+    double *X;
+    double *Y;
+    unsigned int N;
+    bool dataIsChanging;
 
 signals:
 

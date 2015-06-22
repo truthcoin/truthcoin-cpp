@@ -19,6 +19,7 @@ class MarketBranchWindow;
 class MarketDecisionWindow;
 class MarketMarketWindow;
 class MarketTradeWindow;
+class MarketViewGraph;
 class WalletModel;
 
 QT_BEGIN_NAMESPACE
@@ -29,14 +30,11 @@ class QRadioButton;
 QT_END_NAMESPACE
 
 #define MARKETBRANCH_NLABLES     12
-#define MARKETDECISION_NLABLES   8
-#define MARKETMARKET_NLABLES     8
+#define MARKETDECISION_NLABLES   9
+#define MARKETMARKET_NLABLES     9
 #define MARKETTRADE_NLABLES      7
 
 
-/** Widget showing the markets.
-  *
-  */
 class MarketView
    : public QWidget
 {
@@ -87,6 +85,8 @@ private:
     QRadioButton *sellRadioButton;
     QLineEdit *shares;
     QLineEdit *price;
+
+    MarketViewGraph *graphWidget;
 
     virtual void resizeEvent(QResizeEvent *event);
     bool eventFilter(QObject *obj, QEvent *event);

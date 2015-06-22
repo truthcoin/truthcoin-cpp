@@ -23,7 +23,7 @@ MarketTradeWindow::MarketTradeWindow(QWidget *parent)
    : marketView((MarketView *)parent),
     tableModel(0),
     tableView(0),
-    marketTradeProxyModel(0)
+    proxyModel(0)
 {
     setWindowTitle(tr("Trades"));
     setMinimumSize(800,200);
@@ -49,6 +49,7 @@ MarketTradeWindow::MarketTradeWindow(QWidget *parent)
     vlayout->addLayout(glayout);
     vlayout->addWidget(view);
     vlayout->setSpacing(0);
+    int width = view->verticalScrollBar()->sizeHint().width();
 
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     view->setTabKeyNavigation(false);
@@ -68,11 +69,11 @@ void MarketTradeWindow::setModel(WalletModel *model)
     if (!tableModel)
         return;
 
-    marketTradeProxyModel = new MarketTradeFilterProxyModel(this);
-    marketTradeProxyModel->setSourceModel(tableModel);
+    proxyModel = new MarketTradeFilterProxyModel(this);
+    proxyModel->setSourceModel(tableModel);
 
     // tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    tableView->setModel(marketTradeProxyModel);
+    tableView->setModel(proxyModel);
     tableView->setAlternatingRowColors(true);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -82,9 +83,9 @@ void MarketTradeWindow::setModel(WalletModel *model)
 
     tableView->setColumnWidth(MarketTradeTableModel::Address, ADDR_COLUMN_WIDTH);
     tableView->setColumnWidth(MarketTradeTableModel::BuySell, BUYSELL_COLUMN_WIDTH);
+    tableView->setColumnWidth(MarketTradeTableModel::DecisionState, DECISIONSTATE_COLUMN_WIDTH);
     tableView->setColumnWidth(MarketTradeTableModel::NShares, NSHARES_COLUMN_WIDTH);
     tableView->setColumnWidth(MarketTradeTableModel::Price, PRICE_COLUMN_WIDTH);
-    tableView->setColumnWidth(MarketTradeTableModel::DecisionState, DECISIONSTATE_COLUMN_WIDTH);
     tableView->setColumnWidth(MarketTradeTableModel::Nonce, NONCE_COLUMN_WIDTH);
 
     connect(tableView->selectionModel(),
@@ -94,29 +95,38 @@ void MarketTradeWindow::setModel(WalletModel *model)
 
 void MarketTradeWindow::onMarketChange(const marketBranch *branch, const marketDecision *decision, const marketMarket *market)
 {
-    if (!branch || !decision || !market || !tableModel)
+    if (!tableModel || !proxyModel)
         return;
 
     tableModel->onMarketChange(branch, decision, market);
-
-    QModelIndex topLeft = tableModel->index(0, 0, QModelIndex());
-    tableView->setCurrentIndex(topLeft);
-    currentRowChanged(topLeft, topLeft);
+    if (proxyModel->rowCount()) {
+        QModelIndex topLeft = proxyModel->index(0, 0, QModelIndex());
+        int columnCount = proxyModel->columnCount();
+        if (columnCount > 0) {
+            QModelIndex topRight = proxyModel->index(0, columnCount-1, QModelIndex());
+            QItemSelection selection(topLeft, topRight);
+            tableView->selectionModel()->select(selection, QItemSelectionModel::Select);
+        }
+        tableView->setFocus();
+        currentRowChanged(topLeft, topLeft);
+    } else {
+        marketView->onTradeChange(0);
+    }
 }
 
 void MarketTradeWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
 {
-    if (!tableView || !tableModel)
+    if (!tableModel || !marketView || !proxyModel)
         return;
 
-    uint32_t row = curr.row();
+    int row = proxyModel->mapToSource(curr).row();
     const marketTrade *trade = tableModel->index(row);
     marketView->onTradeChange(trade);
 }
 
 void MarketTradeWindow::filterAddressChanged(const QString &str)
 {
-    if (marketTradeProxyModel)
-        marketTradeProxyModel->setFilterAddress(str);
+    if (proxyModel)
+        proxyModel->setFilterAddress(str);
 }
 
