@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "marketviewgraph.h"
 #include "marketview.h"
 

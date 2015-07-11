@@ -101,7 +101,7 @@ BallotView::BallotView(QWidget *parent)
     scrollArea->setWidgetResizable(false);
 
     scrollWidget = new QWidget();
-    QGridLayout *scrollLayout = new QGridLayout(scrollWidget);
+    // QGridLayout *scrollLayout = new QGridLayout(scrollWidget);
     scrollArea->setWidget(scrollWidget);
     v2layout->addWidget(scrollArea);
 
@@ -112,7 +112,7 @@ BallotView::BallotView(QWidget *parent)
 
     branches = pmarkettree->GetBranches();
     std::sort(branches.begin(), branches.end(), branchptrcmp);
-    for(size_t i=0; i < branches.size(); i++)
+    for(uint32_t i=0; i < branches.size(); i++)
         branchWidget->addItem(branches[i]->name.c_str(), i);
 
     connect(branchWidget, SIGNAL(activated(int)), this, SLOT(changedBranch(int)));
@@ -210,7 +210,7 @@ void BallotView::refresh(void)
 
 void BallotView::changedBranch(int i)
 {
-    branch = (i < 0 || i >= branches.size())? 0: branches[i];
+    branch = ((i < 0) || (((unsigned int) i) >= branches.size()))? 0: branches[i];
     refresh();
 }
 
