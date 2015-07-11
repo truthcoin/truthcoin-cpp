@@ -2133,9 +2133,11 @@ Value listbranches(const Array &params, bool fHelp)
         item.push_back(Pair("consensusthreshold", ValueFromAmount(obj->consensusThreshold)));
         array.push_back(item);
     }
+    entry.push_back(Pair("decisions", array));
+
+    /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
-    entry.push_back(Pair("decisions", array));
 
     return entry;
 }
@@ -2181,9 +2183,11 @@ Value listdecisions(const Array &params, bool fHelp)
         item.push_back(Pair("answerOptionality", (int)obj->answerOptionality));
         array.push_back(item);
     }
+    entry.push_back(Pair("decisions", array));
+
+    /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
-    entry.push_back(Pair("decisions", array));
 
     return entry;
 }
@@ -2233,9 +2237,11 @@ Value listmarkets(const Array &params, bool fHelp)
         item.push_back(Pair("decisionIDs", darray));
         array.push_back(item);
     }
+    entry.push_back(Pair("markets", array));
+
+    /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
-    entry.push_back(Pair("markets", array));
 
     return entry;
 }
@@ -2271,6 +2277,8 @@ Value listoutcomes(const Array &params, bool fHelp)
         array.push_back(item);
     }
     entry.push_back(Pair("outcomes", array));
+
+    /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
 
@@ -2317,9 +2325,11 @@ Value listtrades(const Array& params, bool fHelp)
         item.push_back(Pair("nonce", (int)obj->nonce));
         array.push_back(item);
     }
+    entry.push_back(Pair("trades", array));
+
+    /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
-    entry.push_back(Pair("trades", array));
 
     return entry;
 }
@@ -2367,9 +2377,11 @@ Value listvotes(const Array &params, bool fHelp)
         }
         array.push_back(item);
     }
+    entry.push_back(Pair("votes", array));
+
+    /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
-    entry.push_back(Pair("votes", array));
 
     return entry;
 }
@@ -3329,7 +3341,7 @@ Value getvote(const Array& params, bool fHelp)
     return entry;
 }
 
-Value getballot(const Array& params, bool fHelp)
+Value getballot(const Array &params, bool fHelp)
 {
     string strHelp = 
         "getballot branchid [height]"
@@ -3346,8 +3358,17 @@ Value getballot(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
+    Object entry;
+
     uint256 branchid;
     branchid.SetHex(params[0].get_str());
+    marketBranch *branch = pmarkettree->GetBranch(branchid);
+    if (!branch) {
+        string strError = std::string("Error: branchid ")
+            + branchid.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+    entry.push_back(Pair("branchid", branchid.ToString()));
 
     uint32_t block_num = 0;
     if (params.size() == 2)
@@ -3356,28 +3377,21 @@ Value getballot(const Array& params, bool fHelp)
         LOCK(cs_main);
         block_num = chainActive.Height();
     }
-
-    marketBranch *branch = pmarkettree->GetBranch(branchid);
-    if (!branch) {
-        string strError = std::string("Error: branchid ")
-            + branchid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    uint32_t minblock = branch->tau * ((block_num - 1)/ branch->tau);
+    uint32_t minblock = branch->tau * ((block_num - 1)/ branch->tau) + 1;
     uint32_t maxblock = minblock + branch->tau - 1;
-
-    Object entry;
-    entry.push_back(Pair("branchid", branchid.ToString()));
     entry.push_back(Pair("minblock", (int)minblock));
     entry.push_back(Pair("maxblock", (int)maxblock));
 
     Array array;
-    std::map<uint256, marketDecision *>::const_iterator dit;
-    for(dit=branch->decisions.begin(); dit != branch->decisions.end(); dit++) {
-        const marketDecision *obj = dit->second;
+    vector<marketDecision *> vec = pmarkettree->GetDecisions(branchid);
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketDecision *obj = vec[i];
+        if ((obj->eventOverBy < minblock)
+            || (obj->eventOverBy > maxblock))
+            continue;
+
         Object item;
-        item.push_back(Pair("decisionid", dit->first.ToString()));
+        item.push_back(Pair("decisionid", obj->GetHash().ToString()));
         item.push_back(Pair("txid", obj->txid.ToString()));
         CTruthcoinAddress addr;
         if (addr.Set(obj->keyID))
@@ -3393,6 +3407,9 @@ Value getballot(const Array& params, bool fHelp)
     }
     entry.push_back(Pair("decisions", array));
 
+    /* clean up */
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
     delete branch;
 
     return entry;

@@ -18,10 +18,6 @@
 #include "util.h"
 #include "wallet.h"
 
-#include <QColor>
-#include <QDateTime>
-#include <QDebug>
-#include <QIcon>
 #include <QList>
 
 extern CMarketTreeDB *pmarkettree;

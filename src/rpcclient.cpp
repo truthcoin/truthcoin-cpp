@@ -113,6 +113,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createtrade", 6 },
     { "createvote", 1 },
     { "createvote", 2 },
+    { "getballot", 1 },
     { "getcreatemarketcapitalrequired", 0 },
     { "getcreatemarketcapitalrequired", 1 },
     { "getcreatetradecapitalrequired", 2 },

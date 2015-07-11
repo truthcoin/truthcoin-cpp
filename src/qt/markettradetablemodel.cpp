@@ -18,10 +18,6 @@
 #include "util.h"
 #include "wallet.h"
 
-#include <QColor>
-#include <QDateTime>
-#include <QDebug>
-#include <QIcon>
 #include <QList>
 
 
@@ -225,8 +221,10 @@ void MarketTradeTableModel::onMarketChange(
     vector<marketTrade *> vec = pmarkettree->GetTrades(market->GetHash());
     if (vec.size()) {
         beginInsertRows(QModelIndex(), 0, vec.size()-1);
-        for(uint32_t i=0; i < vec.size(); i++)
+        for(uint32_t i=0; i < vec.size(); i++) {
+            InsertMarketObjectHeight(vec[i]);
             priv->cached.append(vec[i]);
+        }
         endInsertRows();
     }
 }

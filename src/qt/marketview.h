@@ -7,7 +7,6 @@
 
 #include "guiutil.h"
 
-#include <QKeyEvent>
 #include <QLabel>
 #include <QWidget>
 

@@ -4,7 +4,6 @@
 
 #include "marketview.h"
 
-#include "truthcoinunits.h"
 #include "csvmodelwriter.h"
 #include "guiutil.h"
 #include "marketbranchwindow.h"
@@ -19,9 +18,9 @@
 #include "optionsmodel.h"
 #include "primitives/market.h"
 #include "scicon.h"
-#include "walletmodel.h"
-
+#include "truthcoinunits.h"
 #include "ui_interface.h"
+#include "walletmodel.h"
 
 #include <QDoubleValidator>
 #include <QHBoxLayout>
@@ -77,9 +76,9 @@ MarketView::MarketView(QWidget *parent)
     marketLabels[1]->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     /* add to grid layout */ 
-    /* Branch    label0   label1   button  */
-    /* Decision  label0   label1   button  */
-    /* aArket    label0   label1   button  */
+    /* Branch    label0   label1   */
+    /* Decision  label0   label1   */
+    /* aArket    label0   label1   */
     glayout->setHorizontalSpacing(5);
     glayout->setColumnStretch(0, 1);
     glayout->setColumnStretch(1, 9);

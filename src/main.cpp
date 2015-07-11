@@ -56,6 +56,46 @@ bool fMarketIndex = true;
 bool fIsBareMultisigStd = true;
 unsigned int nCoinCacheSize = 5000;
 
+// fill obj->nHeight if recorded
+// TODO: logic needs to be better.
+void InsertMarketObjectHeight(marketObj *obj)
+{
+    if (!obj)
+        return; 
+
+    CDiskTxPos postx;
+    if (pblocktree->ReadTxIndex(obj->txid, postx)) {
+        uint32_t chainSize = chainActive.Height() + 1;
+        for(uint32_t i=0; i < chainSize; i++) {
+           const CBlockIndex *pBlockIndex = chainActive[i];
+           if (pBlockIndex->nFile != postx.nFile)
+              continue;
+           if (pBlockIndex->nDataPos <= postx.nPos)
+              obj->nHeight = pBlockIndex->nHeight;
+        }
+    }
+    else
+        cout << "InsertMarketObjectHeight cannot ReadTxIndex for " << obj->txid.ToString() << endl;
+}
+
+void InsertMarketBranchTx(marketBranch *obj)
+{
+    if (!obj)
+        return; 
+
+    CDiskTxPos postx;
+    CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+    if (!file.IsNull()) {
+        try {
+            CBlockHeader header;
+            file >> header;
+            fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
+            file >> obj->tx;
+        } catch (const std::exception& e) {
+            ;
+        }
+    }
+} 
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying and mining) */
 CFeeRate minRelayTxFee = CFeeRate(1000);
