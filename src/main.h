@@ -198,8 +198,6 @@ CAmount GetBlockValue(int nHeight, const CAmount& nFees);
 
 /** Create a new block index entry for a given block hash */
 CBlockIndex * InsertBlockIndex(uint256 hash);
-/** Create a new market entry */
-void InsertMarketIndex(const uint256 &txhash, marketObj *);
 /** Abort with a message */
 bool AbortNode(const std::string &msg, const std::string &userMessage="");
 /** Get statistics from node state */

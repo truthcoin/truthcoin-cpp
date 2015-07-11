@@ -75,9 +75,20 @@ public:
     bool WriteMarketIndex(const std::vector<std::pair<uint256, const marketObj *> > &list);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
-    bool LoadMarketIndexGuts();
-private:
-public:
+
+    marketBranch *GetBranch(const uint256 &);
+    marketDecision *GetDecision(const uint256 &);
+    marketMarket *GetMarket(const uint256 &);
+    marketOutcome *GetOutcome(const uint256 &);
+    marketTrade *GetTrade(const uint256 &);
+    marketVote *GetVote(const uint256 &);
+
+    vector<marketBranch *> GetBranches(void);
+    vector<marketDecision *> GetDecisions(const uint256 &);
+    vector<marketMarket *> GetMarkets(const uint256 &);
+    vector<marketOutcome *> GetOutcomes(const uint256 &);
+    vector<marketTrade *> GetTrades(const uint256 &);
+    vector<marketVote *> GetVotes(const uint256 &, uint32_t);
 };
 
 #endif // TRUTHCOIN_TXDB_H

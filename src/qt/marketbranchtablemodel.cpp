@@ -13,6 +13,7 @@
 
 #include "main.h"
 #include "sync.h"
+#include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
@@ -23,7 +24,8 @@
 #include <QIcon>
 #include <QList>
 
-extern std::map<uint256, marketBranch *> marketBranches;
+extern CMarketTreeDB *pmarkettree;
+
 
 // Amount column is right-aligned it contains numbers
 static int column_alignments[] = {
@@ -228,19 +230,21 @@ MarketBranchTableModel::setTable(void)
     if (!priv)
         return;
 
+    /* erase cache */
     if (priv->cached.size()) {
         beginRemoveRows(QModelIndex(), 0, priv->cached.size()-1);
+        for(ssize_t i=0; i < priv->cached.size(); i++)
+            delete priv->cached[i];
         priv->cached.clear();
         endRemoveRows();
     }
 
-    if (marketBranches.size()) {
-        beginInsertRows(QModelIndex(), 0, marketBranches.size()-1);
-        std::map<uint256, marketBranch *>::const_iterator bit;
-        for(bit=marketBranches.begin(); bit != marketBranches.end(); bit++) {
-            const marketBranch *branch = bit->second;
-            priv->cached.append(branch);
-        }
+    /* insert into cache */
+    vector<marketBranch *> vec = pmarkettree->GetBranches();
+    if (vec.size()) {
+        beginInsertRows(QModelIndex(), 0, vec.size()-1);
+        for(size_t i=0; i < vec.size(); i++)
+            priv->cached.append(vec[i]);
         endInsertRows();
     }
 }

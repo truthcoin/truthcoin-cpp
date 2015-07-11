@@ -484,10 +484,12 @@ bool MarketView::eventFilter(QObject *obj, QEvent *event)
 
 void MarketView::onDoTrade(void)
 {
+	/*
+    TODO
     const marketMarket *market = this->market;
     double shares = this->shares->text().toDouble();
     double price = this->price->text().toDouble();
     uint8_t isBuy = buyRadioButton->isChecked();
-    /* TODO */
+	*/
 }
 

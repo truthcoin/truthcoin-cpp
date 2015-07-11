@@ -13,6 +13,7 @@
 
 #include "main.h"
 #include "sync.h"
+#include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
@@ -22,6 +23,9 @@
 #include <QDebug>
 #include <QIcon>
 #include <QList>
+
+extern CMarketTreeDB *pmarkettree;
+
 
 
 // Amount column is right-aligned it contains numbers
@@ -226,6 +230,8 @@ MarketMarketTableModel::onDecisionChange(const marketBranch *branch, const marke
     /* erase cache */
     if (priv->cached.size()) {
         beginRemoveRows(QModelIndex(), 0, priv->cached.size()-1);
+        for(ssize_t i=0; i < priv->cached.size(); i++)
+            delete priv->cached[i];
         priv->cached.clear();
         endRemoveRows();
     }
@@ -233,27 +239,9 @@ MarketMarketTableModel::onDecisionChange(const marketBranch *branch, const marke
     if (!branch || !decision)
         return;
 
-    /* new vector of markets for cache */
-    std::vector<const marketMarket *> vec;
-    uint256 decisionid = decision->GetHash();
-    std::map<uint256, marketMarket *>::const_iterator it;
-    for(it=branch->markets.begin(); it != branch->markets.end(); it++) {
-        const marketMarket *market = it->second;
-        bool hasDecision = false;
-        const vector<uint256> &decisionIDs = market->decisionIDs;
-        for(uint32_t i=0; i < decisionIDs.size(); i++) {
-            if (decisionIDs[i] != decisionid)
-                continue;
-            hasDecision = true;
-            break;
-        }
-        if (!hasDecision)
-            continue;
-        vec.push_back(it->second);
-    }
-
     /* insert into cache */
-    if (vec.size() > 0) {
+    vector<marketMarket *> vec = pmarkettree->GetMarkets(decision->GetHash());
+    if (vec.size()) {
         beginInsertRows(QModelIndex(), 0, vec.size()-1);
         for(uint32_t i=0; i < vec.size(); i++)
             priv->cached.append(vec[i]);
@@ -338,7 +326,7 @@ QString formatDecisionFunctionIDs(const marketMarket *market)
 QString formatAccountValue(const marketMarket *market)
 {
     char tmp[32];
-    snprintf(tmp, sizeof(tmp), "%.8f", market->account);
+    snprintf(tmp, sizeof(tmp), "%.8f", market->account*1e-8);
     return QString(tmp);
 }
 

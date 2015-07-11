@@ -49,7 +49,6 @@ MarketTradeWindow::MarketTradeWindow(QWidget *parent)
     vlayout->addLayout(glayout);
     vlayout->addWidget(view);
     vlayout->setSpacing(0);
-    int width = view->verticalScrollBar()->sizeHint().width();
 
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     view->setTabKeyNavigation(false);

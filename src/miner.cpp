@@ -14,6 +14,7 @@
 #include "net.h"
 #include "pow.h"
 #include "timedata.h"
+#include "txdb.h"
 #include "util.h"
 #include "utilmoneystr.h"
 #ifdef ENABLE_WALLET
@@ -25,13 +26,13 @@
 
 using namespace std;
 
+extern CMarketTreeDB *pmarkettree;
+
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // TruthcoinMiner
 //
-
-extern std::map<uint256, marketBranch *> marketBranches;
-
 
 CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
 {
@@ -41,25 +42,13 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
     if (height % branch->tau != 0)
         return CTransaction();
 
-    /* retrieve outcome for this height */
-    /* if it exists, return its transaction */
-    std::map<uint256, marketOutcome *>::const_iterator oit;
-    for(oit=branch->outcomes.begin(); oit != branch->outcomes.end(); oit++)
-        if (oit->second->nHeight == height)
-            return oit->second->tx;
-
-    /* retreive ballot for this height (should already exist) */
-    std::map<uint32_t, marketBallot *>::const_iterator bit;
-    bit = branch->ballots.find(height);
-    if (bit == branch->ballots.end())
-        return CTransaction();
-    const marketBallot *ballot = bit->second;
+    /* retrieve the votes for this height */
+    vector<marketVote *> vec = pmarkettree->GetVotes(branch->GetHash(), height);
 
     /* index the ballot's votes via their keyIDs */
     std::map<CKeyID, const marketVote *> votes;
-    std::map<uint256, marketVote *>::const_iterator vit;
-    for(vit = ballot->votes.begin(); vit != ballot->votes.end(); vit++)
-       votes[vit->second->keyID] = vit->second;
+    for(size_t i=0; i < vec.size(); i++)
+       votes[vec[i]->keyID] = vec[i];
 
     /* create new outcome */
     struct marketOutcome *outcome = new marketOutcome;
@@ -142,6 +131,10 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
 
     /* cache the new outcome */
     branch->outcomes[ outcome->GetHash() ] = outcome;
+
+    /* clean up */
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
 
     return mtx;
 }
@@ -232,12 +225,14 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 
     // Create branches outcome txs
     uint32_t height = chainActive.Height() + 1;
-    std::map<uint256, marketBranch *>::const_iterator bit;
-    for(bit=marketBranches.begin(); bit != marketBranches.end(); bit++) {
-        CTransaction btx = getOutcomeTx(bit->second,height);
+    vector<marketBranch *> branches = pmarkettree->GetBranches();
+    for(size_t i=0; i < branches.size(); i++) {
+        CTransaction btx = getOutcomeTx(branches[i], height);
         if (btx.vout.size())
             pblock->vtx.push_back(btx);
     }
+    for(size_t i=0; i < branches.size(); i++)
+        delete branches[i];
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);

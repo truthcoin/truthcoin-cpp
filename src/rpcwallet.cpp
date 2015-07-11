@@ -13,6 +13,7 @@
 #include "netbase.h"
 #include "primitives/market.h"
 #include "timedata.h"
+#include "txdb.h"
 #include "util.h"
 #include "utilmoneystr.h"
 #include "wallet.h"
@@ -31,11 +32,7 @@ using namespace json_spirit;
 
 int64_t nWalletUnlockTime;
 static CCriticalSection cs_nWalletUnlockTime;
-
-extern std::map<uint256, marketBranch *> marketBranches;
-extern std::map<uint256, uint256> marketDecisionToBranch;
-extern std::map<uint256, uint256> marketOutcomeToBranch;
-extern std::map<uint256, uint256> marketMarketToBranch;
+extern CMarketTreeDB *pmarkettree;
 
 
 std::string HelpRequiringPassphrase()
@@ -319,8 +316,8 @@ Value getaddressesbyaccount(const Array& params, bool fHelp)
 }
 
 void SendMoney(
-	const std::string &strAccount,
-	const CTxDestination &address,
+    const std::string &strAccount,
+    const CTxDestination &address,
     CAmount nValue,
     CWalletTx& wtxNew)
 {
@@ -441,6 +438,11 @@ Value listaddressgroupings(const Array& params, bool fHelp)
             + HelpExampleRpc("listaddressgroupings", "")
         );
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     Array jsonGroupings;
     map<CTxDestination, CAmount> balances = pwalletMain->GetAddressBalances();
     BOOST_FOREACH(set<CTxDestination> grouping, pwalletMain->GetAddressGroupings())
@@ -459,10 +461,11 @@ Value listaddressgroupings(const Array& params, bool fHelp)
                 if (strAccount.size() == 64) {
                     uint256 branchid(ParseHex(strAccount));
                     std::reverse(branchid.begin(), branchid.end());
-                    std::map<uint256, marketBranch *>::const_iterator bit
-                        = marketBranches.find(branchid);
-                    if (bit != marketBranches.end())
+                    marketBranch *branch = pmarkettree->GetBranch(branchid);
+                    if (branch) {
                         is_votecoin = 1;
+                        delete branch;
+                    }
                 }
             }
             CTruthcoinAddress addr;
@@ -2084,7 +2087,7 @@ int64_t int64FromValue(const Value& value)
     return roundint64(dAmount * COIN);
 }
 
-uint64_t uint64FromValue(const Value& value, bool allow_zero)
+uint64_t uint64FromValue(const Value &value, bool allow_zero)
 {
     double dAmount = value.get_real();
     if (dAmount < 0.0)
@@ -2094,21 +2097,28 @@ uint64_t uint64FromValue(const Value& value, bool allow_zero)
     return rounduint64(dAmount * COIN);
 }
 
-Value listbranches(const Array& params, bool fHelp)
+Value listbranches(const Array &params, bool fHelp)
 {
     string strHelp = 
         "listbranches"
         "\nReturns an array of all branches.";
 
-    if (fHelp || (params.size() > 0))
+    if (fHelp || (params.size() != 0))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    Object entry;
+
     Array array;
-    std::map<uint256, marketBranch *>::const_iterator bit;
-    for(bit=marketBranches.begin(); bit != marketBranches.end(); bit++) {
-        const marketBranch *obj = bit->second;
+    vector<marketBranch *> vec = pmarkettree->GetBranches();
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketBranch *obj = vec[i];
         Object item;
-        item.push_back(Pair("branchid", bit->first.ToString()));
+        item.push_back(Pair("branchid", obj->GetHash().ToString()));
         item.push_back(Pair("txid", obj->txid.ToString()));
         item.push_back(Pair("name", obj->name));
         item.push_back(Pair("description", obj->description));
@@ -2123,10 +2133,14 @@ Value listbranches(const Array& params, bool fHelp)
         item.push_back(Pair("consensusthreshold", ValueFromAmount(obj->consensusThreshold)));
         array.push_back(item);
     }
-    return array;
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
+    entry.push_back(Pair("decisions", array));
+
+    return entry;
 }
 
-Value listdecisions(const Array& params, bool fHelp)
+Value listdecisions(const Array &params, bool fHelp)
 {
     string strHelp = 
         "listdecisions branchid"
@@ -2137,28 +2151,23 @@ Value listdecisions(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 branchid;
-    branchid.SetHex(params[0].get_str());
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(branchid);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + branchid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    const marketBranch *branch = bit->second;
-
     Object entry;
-    entry.push_back(Pair("branchid", bit->first.ToString()));
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
+    entry.push_back(Pair("branchid", branchid.ToString()));
 
     Array array;
-    std::map<uint256, marketDecision *>::const_iterator dit;
-    for(dit=branch->decisions.begin(); dit != branch->decisions.end(); dit++) {
-        const marketDecision *obj = dit->second;
+    vector<marketDecision *> vec = pmarkettree->GetDecisions(branchid);
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketDecision *obj = vec[i];
         Object item;
-        item.push_back(Pair("decisionid", dit->first.ToString()));
+        item.push_back(Pair("decisionid", obj->GetHash().ToString()));
         item.push_back(Pair("txid", obj->txid.ToString()));
         CTruthcoinAddress addr;
         if (addr.Set(obj->keyID))
@@ -2172,12 +2181,14 @@ Value listdecisions(const Array& params, bool fHelp)
         item.push_back(Pair("answerOptionality", (int)obj->answerOptionality));
         array.push_back(item);
     }
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
     entry.push_back(Pair("decisions", array));
 
     return entry;
 }
 
-Value listmarkets(const Array& params, bool fHelp)
+Value listmarkets(const Array &params, bool fHelp)
 {
     string strHelp = 
         "listmarkets decisionid"
@@ -2188,43 +2199,23 @@ Value listmarkets(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 decisionid;
-    decisionid.SetHex(params[0].get_str());
-
-    std::map<uint256, uint256>::const_iterator it
-        = marketDecisionToBranch.find(decisionid);
-    if (it == marketDecisionToBranch.end()) {
-        string strError = std::string("Error: branchid for ")
-            + decisionid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->second);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->first.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketBranch *branch = bit->second;
 
     Object entry;
+
+    uint256 decisionid;
+    decisionid.SetHex(params[0].get_str());
     entry.push_back(Pair("decisionid", decisionid.ToString()));
 
     Array array;
-    std::map<uint256, marketMarket *>::const_iterator mit;
-    for(mit=branch->markets.begin(); mit != branch->markets.end(); mit++) {
-        const marketMarket *obj = mit->second;
-        const vector<uint256> &decisionIDs = obj->decisionIDs;
-        bool has_decision = false;
-        for(uint32_t i=0; i < decisionIDs.size(); i++)
-            if (decisionIDs[i] == decisionid)
-                has_decision = true;
-        if (!has_decision)
-            continue;
+    vector<marketMarket *> vec = pmarkettree->GetMarkets(decisionid);
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketMarket *obj = vec[i];
         Object item;
-        item.push_back(Pair("marketid", mit->first.ToString()));
+        item.push_back(Pair("marketid", obj->GetHash().ToString()));
         item.push_back(Pair("txid", obj->txid.ToString()));
         CTruthcoinAddress addr;
         if (addr.Set(obj->keyID))
@@ -2236,18 +2227,20 @@ Value listmarkets(const Array& params, bool fHelp)
         item.push_back(Pair("description", obj->description));
         item.push_back(Pair("tags", obj->tags));
         item.push_back(Pair("maturation", (int)obj->maturation));
-        Array decision_array;
-        for(uint32_t i=0; i < decisionIDs.size(); i++)
-            decision_array.push_back(decisionIDs[i].ToString());
-        item.push_back(Pair("decisionIDs", decision_array));
+        Array darray; /* decision array */
+        for(uint32_t i=0; i < obj->decisionIDs.size(); i++)
+            darray.push_back(obj->decisionIDs[i].ToString());
+        item.push_back(Pair("decisionIDs", darray));
         array.push_back(item);
     }
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
     entry.push_back(Pair("markets", array));
 
     return entry;
 }
 
-Value listoutcomes(const Array& params, bool fHelp)
+Value listoutcomes(const Array &params, bool fHelp)
 {
     string strHelp = 
         "listoutcomes branchid"
@@ -2258,30 +2251,28 @@ Value listoutcomes(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 branchid;
-    branchid.SetHex(params[0].get_str());
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(branchid);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + branchid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    const marketBranch *branch = bit->second;
-
     Object entry;
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
     entry.push_back(Pair("branchid", branchid.ToString()));
 
     Array array;
-    std::map<uint256, marketOutcome *>::const_iterator oit;
-    for(oit=branch->outcomes.begin(); oit != branch->outcomes.end(); oit++) {
+    vector<marketOutcome *> vec = pmarkettree->GetOutcomes(branchid);
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketOutcome *obj = vec[i];
         Object item;
-        item.push_back(Pair("outcomeid", oit->first.ToString()));
+        item.push_back(Pair("outcomeid", obj->GetHash().ToString()));
         array.push_back(item);
     }
     entry.push_back(Pair("outcomes", array));
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
 
     return entry;
 }
@@ -2297,60 +2288,43 @@ Value listtrades(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 marketid;
-    marketid.SetHex(params[0].get_str());
-
-    std::map<uint256, uint256>::const_iterator it
-        = marketMarketToBranch.find(marketid);
-    if (it == marketMarketToBranch.end()) {
-        string strError = std::string("Error: branchid for ")
-            + marketid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->second);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->first.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketBranch *branch = bit->second;
 
     Object entry;
+
+    uint256 marketid;
+    marketid.SetHex(params[0].get_str());
     entry.push_back(Pair("marketid", marketid.ToString()));
 
     Array array;
-    std::map<uint256, marketMarket *>::const_iterator mit
-        = branch->markets.find(marketid);
-    if (mit != branch->markets.end()) {
-        std::map<uint256, marketTrade *>::const_iterator tit;
-        for(tit=mit->second->trades.begin(); tit != mit->second->trades.end(); tit++) {
-            const marketTrade *obj = tit->second;
-            if (obj->marketid != marketid)
-                continue;
-            Object item;
-            item.push_back(Pair("tradeid", tit->first.ToString()));
-            item.push_back(Pair("txid", obj->txid.ToString()));
-            CTruthcoinAddress addr;
-            if (addr.Set(obj->keyID))
-                item.push_back(Pair("keyID", addr.ToString()));
-            item.push_back(Pair("marketid", obj->marketid.ToString()));
-            item.push_back(Pair("isbuy", (obj->isBuy)? "buy":"sell"));
-            item.push_back(Pair("nshares", ValueFromAmount(obj->nShares)));
-            item.push_back(Pair("price", ValueFromAmount(obj->price)));
-            item.push_back(Pair("decision_state", (int)obj->decisionState));
-            item.push_back(Pair("nonce", (int)obj->nonce));
-            array.push_back(item);
-        }
+    vector<marketTrade *> vec = pmarkettree->GetTrades(marketid);
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketTrade *obj = vec[i];
+        Object item;
+        item.push_back(Pair("tradeid", obj->GetHash().ToString()));
+        item.push_back(Pair("txid", obj->txid.ToString()));
+        CTruthcoinAddress addr;
+        if (addr.Set(obj->keyID))
+            item.push_back(Pair("keyID", addr.ToString()));
+        item.push_back(Pair("marketid", obj->marketid.ToString()));
+        item.push_back(Pair("isbuy", (obj->isBuy)? "buy":"sell"));
+        item.push_back(Pair("nshares", ValueFromAmount(obj->nShares)));
+        item.push_back(Pair("price", ValueFromAmount(obj->price)));
+        item.push_back(Pair("decision_state", (int)obj->decisionState));
+        item.push_back(Pair("nonce", (int)obj->nonce));
+        array.push_back(item);
     }
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
     entry.push_back(Pair("trades", array));
 
     return entry;
 }
 
-Value listvotes(const Array& params, bool fHelp)
+Value listvotes(const Array &params, bool fHelp)
 {
     string strHelp = 
         "listvotes branchid height "
@@ -2362,53 +2336,39 @@ Value listvotes(const Array& params, bool fHelp)
     if (fHelp || (params.size() < 2))
         throw runtime_error(strHelp);
 
-    uint256 branchid;
-    branchid.SetHex(params[0].get_str());
-    uint32_t height = (unsigned int)params[1].get_int();
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(branchid);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + branchid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketBranch *branch = bit->second;
-
-    if (height % branch->tau != 0) {
-        string strError = std::string("Error: invaid height ")
-            + params[1].get_str() + " for the branch's tau!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
     Object entry;
+
+    uint256 branchid;
+    branchid.SetHex(params[0].get_str());
     entry.push_back(Pair("branchid", branchid.ToString()));
+    uint32_t height = (unsigned int)params[1].get_int();
     entry.push_back(Pair("height", (int)height));
 
     Array array;
-    std::map<uint32_t, marketBallot *>::const_iterator bait
-        = branch->ballots.find(height);
-    if (bait != branch->ballots.end()) {
-        const marketBallot *ballot = bait->second;
-        std::map<uint256, marketVote *>::const_iterator vit;
-        for(vit=ballot->votes.begin(); vit != ballot->votes.end(); vit++) {
-            const marketVote *obj = vit->second;
-            Object item;
-            item.push_back(Pair("voteid", vit->first.ToString()));
-            item.push_back(Pair("txid", obj->txid.ToString()));
-            item.push_back(Pair("NA", ValueFromAmount(obj->NA)));
-            Array decision_array;
-            for(uint32_t i=0; i < obj->decisionIDs.size(); i++) {
-                Object decision;
-                decision.push_back(Pair("decisionid", obj->decisionIDs[i].ToString()));
-                if (i < obj->decisionVotes.size())
-				    decision.push_back(Pair("vote", ValueFromAmount(obj->decisionVotes[i])));
-                decision_array.push_back(decision);
-            }
-            array.push_back(item);
+    vector<marketVote *> vec = pmarkettree->GetVotes(branchid, height);
+    for(size_t i=0; i < vec.size(); i++) {
+        const marketVote *obj = vec[i];
+        Object item;
+        item.push_back(Pair("voteid", obj->ToString()));
+        item.push_back(Pair("txid", obj->txid.ToString()));
+        item.push_back(Pair("NA", ValueFromAmount(obj->NA)));
+        Array decision_array;
+        for(uint32_t i=0; i < obj->decisionIDs.size(); i++) {
+            Object decision;
+            decision.push_back(Pair("decisionid", obj->decisionIDs[i].ToString()));
+            if (i < obj->decisionVotes.size())
+                decision.push_back(Pair("vote", ValueFromAmount(obj->decisionVotes[i])));
+            decision_array.push_back(decision);
         }
+        array.push_back(item);
     }
+    for(size_t i=0; i < vec.size(); i++)
+        delete vec[i];
     entry.push_back(Pair("votes", array));
 
     return entry;
@@ -2438,6 +2398,11 @@ Value createbranch(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 11))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     EnsureWalletIsUnlocked();
 
     struct marketBranch obj;
@@ -2455,7 +2420,9 @@ Value createbranch(const Array& params, bool fHelp)
 
     // double-check object is not a duplicate
     uint256 objid = obj.GetHash();
-    if (marketBranches.find(objid) != marketBranches.end()) {
+    marketBranch *tmpbranch = pmarkettree->GetBranch(objid);
+    if (tmpbranch) {
+        delete tmpbranch;
         string strError = std::string("Error: branchid ")
             + objid.ToString() + " already exists!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
@@ -2519,6 +2486,11 @@ Value createdecision(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 6 && params.size() != 8))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     EnsureWalletIsUnlocked();
 
     struct marketDecision obj;
@@ -2537,20 +2509,20 @@ Value createdecision(const Array& params, bool fHelp)
     obj.min = (params.size() == 6)? 0: int64FromValue(params[6]);
     obj.max = (params.size() == 6)? COIN: int64FromValue(params[7]);
 
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(obj.branchid);
-    if (bit == marketBranches.end()) {
+    // double-check branch exists
+    marketBranch *branch = pmarkettree->GetBranch(obj.branchid);
+    if (!branch) {
         string strError = std::string("Error: branchid ")
             + obj.branchid.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-    const marketBranch *branch = bit->second;
+    delete branch;
 
     // double-check object is not a duplicate
     uint256 objid = obj.GetHash();
-    std::map<uint256, marketDecision *>::const_iterator dit
-        = branch->decisions.find(objid);
-    if (dit != branch->decisions.end()) {
+    marketDecision *decision = pmarkettree->GetDecision(objid);
+    if (decision) {
+        delete decision;
         string strError = std::string("Error: decisionid ")
             + objid.ToString() + " already exists!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
@@ -2594,6 +2566,7 @@ Value createdecision(const Array& params, bool fHelp)
     Object entry;
     entry.push_back(Pair("txid", wtx.GetHash().ToString()));
     entry.push_back(Pair("decisionid", objid.ToString()));
+
     return entry;
 }
 
@@ -2623,6 +2596,11 @@ Value createmarket(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 10))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     EnsureWalletIsUnlocked();
 
     CTruthcoinAddress address(params[0].get_str());
@@ -2649,22 +2627,18 @@ Value createmarket(const Array& params, bool fHelp)
             strs[i].erase(separator);
         }
         decisionID.SetHex(strs[i].c_str());
-        if (marketDecisionToBranch.find(decisionID) == marketDecisionToBranch.end()) {
+
+        marketDecision *decision = pmarkettree->GetDecision(decisionID);
+        if (!decision) {
             string strError = std::string("Error: decisionID ")
                 + decisionID.ToString() + " does not exist!"; 
             throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
         }
-        uint256 branchid = marketDecisionToBranch[decisionID];
-        if (obj.branchid.IsNull())
-            obj.branchid = branchid;
-        else 
-        if (obj.branchid != branchid) {
-            string strError = std::string("Error: decisionIDs are in separate branches ")
-                + branchid.ToString() + " " + obj.branchid.ToString() + "!";
-            throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-        }
+        delete decision;
+
         obj.decisionIDs.push_back(decisionID);
         obj.decisionFunctionIDs.push_back(decisionFunctionID);
+
         nstates *= 2;
     }
     if ((!obj.decisionIDs.size()) || (nstates == 1)) {
@@ -2684,7 +2658,9 @@ Value createmarket(const Array& params, bool fHelp)
 
     // double-check object is not a duplicate
     uint256 objid = obj.GetHash();
-    if (marketMarketToBranch.find(objid) != marketMarketToBranch.end()) {
+    marketMarket *tmp = pmarkettree->GetMarket(objid);
+    if (tmp) {
+        delete tmp;
         string strError = std::string("Error: marketid ")
             + objid.ToString() + " already exists!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
@@ -2750,6 +2726,11 @@ Value createtrade(const Array& params, bool fHelp)
     if (fHelp || ((params.size() != 6) && (params.size() != 7)))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     EnsureWalletIsUnlocked();
 
     marketTrade obj;
@@ -2759,32 +2740,12 @@ Value createtrade(const Array& params, bool fHelp)
     address.GetKeyID(obj.keyID);
     obj.marketid.SetHex(params[1].get_str());
 
-    std::map<uint256, uint256>::const_iterator it
-        = marketMarketToBranch.find(obj.marketid);
-    if (it == marketMarketToBranch.end()) {
-        string strError = std::string("Error: branchid for ")
+    /* double check marketid exists */
+    marketMarket *market = pmarkettree->GetMarket(obj.marketid);
+    if (!market) {
+        string strError = std::string("Error: marketid ")
             + obj.marketid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->first);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->first.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketBranch *branch = bit->second;
-    std::map<uint256, marketMarket *>::const_iterator mit
-        = branch->markets.find(obj.marketid);
-    if (mit == branch->markets.end()) {
-        string strError = std::string("Error: market for ")
-            + obj.marketid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketMarket *market = mit->second;
 
     string buy_or_sell = params[2].get_str();
     if ((buy_or_sell != "buy") && (buy_or_sell != "sell")) {
@@ -2800,7 +2761,10 @@ Value createtrade(const Array& params, bool fHelp)
 
     // double-check object is not a duplicate
     uint256 objid = obj.GetHash();
-    if (market->trades.find(objid) != market->trades.end()) {
+    marketTrade *tmptrade = pmarkettree->GetTrade(objid);
+    if (tmptrade) {
+        delete tmptrade;
+        delete market;
         string strError = std::string("Error: tradeid ")
             + objid.ToString() + " already exists!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
@@ -2829,6 +2793,7 @@ Value createtrade(const Array& params, bool fHelp)
     double totalCost = price * nShares;
 
     if ((obj.isBuy) && (price > 1e-8*obj.price)) {
+        delete market;
         char tmp[32];
         snprintf(tmp, sizeof(tmp), "%.8f", price);
         string strError = std::string("Error: price needs to be at least ")
@@ -2839,6 +2804,7 @@ Value createtrade(const Array& params, bool fHelp)
     // ensure unlocked wallet
     string strError;
     if (pwalletMain->IsLocked()) {
+        delete market;
         strError = "Error: Wallet locked, unable to create transaction!";
         LogPrintf("createtrade() : %s", strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
@@ -2880,6 +2846,8 @@ Value createtrade(const Array& params, bool fHelp)
     entry.push_back(Pair("price", price));
     entry.push_back(Pair("total", nShares*price));
 
+    delete market;
+
     return entry;
 }
 
@@ -2896,6 +2864,11 @@ Value createvote(const Array& params, bool fHelp)
     if (fHelp || (params.size() < 4))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     EnsureWalletIsUnlocked();
 
     marketVote obj;
@@ -2903,15 +2876,13 @@ Value createvote(const Array& params, bool fHelp)
     obj.height = params[1].get_int();
     obj.NA = uint64FromValue(params[2], false);
 
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(obj.branchid);
-    if (bit == marketBranches.end()) {
+    marketBranch *branch = pmarkettree->GetBranch(obj.branchid);
+    if (!branch) {
         string strError = std::string("Error: branchid ")
             + obj.branchid.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    marketBranch *branch = bit->second;
     if (obj.height % branch->tau != 0) {
         string strError = std::string("Error: Invalid height ")
             + " for the branch's tau!"; 
@@ -2945,6 +2916,9 @@ Value createvote(const Array& params, bool fHelp)
         branch->ballots[obj.height] = ballot;
     } else
         ballot = bait->second;
+
+    /* branch no longer needed */
+    delete branch;
 
     // double-check object is not a duplicate
     uint256 objid = obj.GetHash();
@@ -2997,7 +2971,7 @@ Value createvote(const Array& params, bool fHelp)
     return entry;
 };
 
-Value getbranch(const Array& params, bool fHelp)
+Value getbranch(const Array &params, bool fHelp)
 {
     string strHelp = 
         "getbranch branchid"
@@ -3007,20 +2981,23 @@ Value getbranch(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 branchid;
-    branchid.SetHex(params[0].get_str());
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(branchid);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + branchid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-    const marketBranch *obj = bit->second;
+
+    uint256 id;
+    id.SetHex(params[0].get_str());
+
+    marketBranch *obj = pmarkettree->GetBranch(id);
+    if (!obj) {
+        string strError = std::string("Error: branchid ")
+            + id.ToString() + " does not exist!"; 
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
 
     Object entry;
-    entry.push_back(Pair("branchid", bit->first.ToString()));
+    entry.push_back(Pair("branchid", id.ToString()));
     entry.push_back(Pair("txid", obj->txid.ToString()));
     entry.push_back(Pair("name", obj->name));
     entry.push_back(Pair("description", obj->description));
@@ -3053,10 +3030,12 @@ Value getbranch(const Array& params, bool fHelp)
     }
     entry.push_back(Pair("votecoins", array));
 
+    delete obj;
+
     return entry;
 }
 
-Value getdecision(const Array& params, bool fHelp)
+Value getdecision(const Array &params, bool fHelp)
 {
     string strHelp = 
         "getdecision decisionid"
@@ -3066,37 +3045,23 @@ Value getdecision(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 decisionid;
-    decisionid.SetHex(params[0].get_str());
-
-    std::map<uint256, uint256>::const_iterator it
-        = marketDecisionToBranch.find(decisionid);
-    if (it == marketDecisionToBranch.end()) {
-        string strError = std::string("Error: branchid for ")
-            + decisionid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->second);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->second.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
+    uint256 id;
+    id.SetHex(params[0].get_str());
 
-    const marketBranch *branch = bit->second;
-    std::map<uint256, marketDecision *>::const_iterator dit
-        = branch->decisions.find(decisionid);
-    if (dit == branch->decisions.end()) {
+    marketDecision *obj = pmarkettree->GetDecision(id);
+    if (!obj) {
         string strError = std::string("Error: decision for ")
-            + decisionid.ToString() + " does not exist!"; 
+            + id.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    const marketDecision *obj = dit->second;
     Object entry;
-    entry.push_back(Pair("decisionid", decisionid.ToString()));
+    entry.push_back(Pair("decisionid", id.ToString()));
     entry.push_back(Pair("txid", obj->txid.ToString()));
     CTruthcoinAddress addr;
     if (addr.Set(obj->keyID))
@@ -3111,7 +3076,7 @@ Value getdecision(const Array& params, bool fHelp)
     return entry;
 }
 
-Value getmarket(const Array& params, bool fHelp)
+Value getmarket(const Array &params, bool fHelp)
 {
     string strHelp = 
         "getmarket marketid"
@@ -3121,35 +3086,20 @@ Value getmarket(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 marketid;
-    marketid.SetHex(params[0].get_str());
-
-    std::map<uint256, uint256>::const_iterator it
-        = marketMarketToBranch.find(marketid);
-    if (it == marketMarketToBranch.end()) {
-        string strError = std::string("Error: branchid for ")
-            + marketid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->first);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->first.ToString() + " does not exist!"; 
+    uint256 id;
+    id.SetHex(params[0].get_str());
+
+    marketMarket *obj = pmarkettree->GetMarket(id);
+    if (!obj) {
+        string strError = std::string("Error: marketid for ")
+            + id.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-
-    const marketBranch *branch = bit->second;
-    std::map<uint256, marketMarket *>::const_iterator mit
-        = branch->markets.find(marketid);
-    if (mit == branch->markets.end()) {
-        string strError = std::string("Error: market for ")
-            + marketid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketMarket *obj = mit->second;
 
     // current shares of the market for each decision id
     double nShares0 = 0.0;
@@ -3158,7 +3108,7 @@ Value getmarket(const Array& params, bool fHelp)
     double currAccount = obj->getAccount(nShares0, nShares1);
 
     Object entry;
-    entry.push_back(Pair("marketid", marketid.ToString()));
+    entry.push_back(Pair("marketid", id.ToString()));
     entry.push_back(Pair("txid", obj->txid.ToString()));
     CTruthcoinAddress addr;
     if (addr.Set(obj->keyID))
@@ -3183,10 +3133,13 @@ Value getmarket(const Array& params, bool fHelp)
     entry.push_back(Pair("nShares0", nShares0));
     entry.push_back(Pair("nShares1", nShares1));
     entry.push_back(Pair("currAccount", currAccount));
+
+    delete obj; 
+
     return entry;
 }
 
-Value getoutcome(const Array& params, bool fHelp)
+Value getoutcome(const Array &params, bool fHelp)
 {
     string strHelp = 
         "getoutcome outcomeid"
@@ -3197,35 +3150,20 @@ Value getoutcome(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 outcomeid;
-    outcomeid.SetHex(params[0].get_str());
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
 
-    std::map<uint256, uint256>::const_iterator it
-        = marketOutcomeToBranch.find(outcomeid);
-    if (it == marketOutcomeToBranch.end()) {
+    uint256 id;
+    id.SetHex(params[0].get_str());
+
+    marketOutcome *obj = pmarkettree->GetOutcome(id);
+    if (!obj) { 
         string strError = std::string("Error: outcomeid for ")
-            + outcomeid.ToString() + " does not exist!"; 
+            + id.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->first);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->first.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketBranch *branch = bit->second;
-    std::map<uint256, marketOutcome *>::const_iterator oit
-        = branch->outcomes.find(outcomeid);
-    if (oit == branch->outcomes.end()) {
-        string strError = std::string("Error: outcome for ")
-            + outcomeid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketOutcome *obj = oit->second;
 
     Object entry;
     entry.push_back(Pair("nVoters", (int)obj->nVoters));
@@ -3332,6 +3270,8 @@ Value getoutcome(const Array& params, bool fHelp)
         decisionsFinal.push_back(ValueFromAmount(obj->decisionsFinal[i]));
     entry.push_back(Pair("decisionsFinal", decisionsFinal));
 
+    delete obj;
+
     return entry;
 }
 
@@ -3346,13 +3286,18 @@ Value gettrade(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 tradeid;
-    tradeid.SetHex(params[0].get_str());
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    uint256 id;
+    id.SetHex(params[0].get_str());
 
     // TODO 
 
     Object entry;
-    entry.push_back(Pair("tradeid", tradeid.ToString()));
+    entry.push_back(Pair("tradeid", id.ToString()));
 
     return entry;
 }
@@ -3368,13 +3313,18 @@ Value getvote(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 1))
         throw runtime_error(strHelp);
 
-    uint256 voteid;
-    voteid.SetHex(params[0].get_str());
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
+    uint256 id;
+    id.SetHex(params[0].get_str());
 
     // TODO 
 
     Object entry;
-    entry.push_back(Pair("voteid", voteid.ToString()));
+    entry.push_back(Pair("voteid", id.ToString()));
 
     return entry;
 }
@@ -3391,26 +3341,29 @@ Value getballot(const Array& params, bool fHelp)
     if (fHelp || ((params.size() != 1) && (params.size() != 2)))
         throw runtime_error(strHelp);
 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
+
     uint256 branchid;
     branchid.SetHex(params[0].get_str());
 
     uint32_t block_num = 0;
     if (params.size() == 2)
-		block_num = (uint32_t) params[1].get_int();
+        block_num = (uint32_t) params[1].get_int();
     else {
         LOCK(cs_main);
         block_num = chainActive.Height();
     }
 
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(branchid);
-    if (bit == marketBranches.end()) {
+    marketBranch *branch = pmarkettree->GetBranch(branchid);
+    if (!branch) {
         string strError = std::string("Error: branchid ")
             + branchid.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    const marketBranch *branch = bit->second;
     uint32_t minblock = branch->tau * ((block_num - 1)/ branch->tau);
     uint32_t maxblock = minblock + branch->tau - 1;
 
@@ -3428,7 +3381,7 @@ Value getballot(const Array& params, bool fHelp)
         item.push_back(Pair("txid", obj->txid.ToString()));
         CTruthcoinAddress addr;
         if (addr.Set(obj->keyID))
-		    item.push_back(Pair("keyID", addr.ToString()));
+            item.push_back(Pair("keyID", addr.ToString()));
         item.push_back(Pair("branchid", obj->branchid.ToString()));
         item.push_back(Pair("prompt", obj->prompt));
         item.push_back(Pair("eventoverby", (int)obj->eventOverBy));
@@ -3439,6 +3392,8 @@ Value getballot(const Array& params, bool fHelp)
         array.push_back(item);
     }
     entry.push_back(Pair("decisions", array));
+
+    delete branch;
 
     return entry;
 }
@@ -3453,6 +3408,11 @@ Value getcreatemarketcapitalrequired(const Array& params, bool fHelp)
 
     if (fHelp || (params.size() != 2))
         throw runtime_error(strHelp);
+
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
+        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
+    }
 
     double B = uint64FromValue(params[0], false) / 1e8;
     uint32_t number_of_states = (uint32_t)params[1].get_int();
@@ -3478,35 +3438,20 @@ Value getcreatetradecapitalrequired(const Array& params, bool fHelp)
     if (fHelp || (params.size() != 4))
         throw runtime_error(strHelp);
 
-    uint256 marketid;
-    marketid.SetHex(params[0].get_str());
-
-    std::map<uint256, uint256>::const_iterator it
-        = marketMarketToBranch.find(marketid);
-    if (it == marketMarketToBranch.end()) {
-        string strError = std::string("Error: branchid for ")
-            + marketid.ToString() + " does not exist!"; 
+    if (!pmarkettree) {
+        string strError = std::string("Error: NULL pmarkettree!");
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    std::map<uint256, marketBranch *>::const_iterator bit
-        = marketBranches.find(it->first);
-    if (bit == marketBranches.end()) {
-        string strError = std::string("Error: branchid ")
-            + it->first.ToString() + " does not exist!"; 
+    uint256 id;
+    id.SetHex(params[0].get_str());
+
+    marketMarket *market = pmarkettree->GetMarket(id);
+    if (!market) {
+        string strError = std::string("Error: marketid")
+            + id.ToString() + " does not exist!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
-
-    const marketBranch *branch = bit->second;
-    std::map<uint256, marketMarket *>::const_iterator mit
-        = branch->markets.find(marketid);
-    if (mit == branch->markets.end()) {
-        string strError = std::string("Error: market for ")
-            + marketid.ToString() + " does not exist!"; 
-        throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
-    }
-
-    const marketMarket *market = mit->second;
 
     string buy_or_sell = params[1].get_str();
     bool isBuy = (buy_or_sell == "buy");
@@ -3557,6 +3502,9 @@ Value getcreatetradecapitalrequired(const Array& params, bool fHelp)
     entry.push_back(Pair("nShares", nShares));
     entry.push_back(Pair("price", price));
     entry.push_back(Pair("total", nShares*price));
+
+    delete market;
+
     return entry;
 }
 

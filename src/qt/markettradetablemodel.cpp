@@ -13,6 +13,7 @@
 
 #include "main.h"
 #include "sync.h"
+#include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
@@ -22,6 +23,9 @@
 #include <QDebug>
 #include <QIcon>
 #include <QList>
+
+
+extern CMarketTreeDB *pmarkettree;
 
 
 // Amount column is right-aligned it contains numbers
@@ -208,6 +212,8 @@ void MarketTradeTableModel::onMarketChange(
     /* erase cache */
     if (priv->cached.size()) {
         beginRemoveRows(QModelIndex(), 0, priv->cached.size()-1);
+        for(ssize_t i=0; i < priv->cached.size(); i++)
+            delete priv->cached[i];
         priv->cached.clear();
         endRemoveRows();
     }
@@ -215,14 +221,9 @@ void MarketTradeTableModel::onMarketChange(
     if (!branch || !decision || !market)
         return;
 
-    /* new vector of trades for cache */
-    std::vector<const marketTrade *> vec;
-    std::map<uint256, marketTrade *>::const_iterator it;
-    for(it=market->trades.begin(); it != market->trades.end(); it++)
-        vec.push_back(it->second);
-
     /* insert into cache */
-    if (vec.size() > 0) {
+    vector<marketTrade *> vec = pmarkettree->GetTrades(market->GetHash());
+    if (vec.size()) {
         beginInsertRows(QModelIndex(), 0, vec.size()-1);
         for(uint32_t i=0; i < vec.size(); i++)
             priv->cached.append(vec[i]);

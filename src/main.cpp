@@ -42,13 +42,7 @@ using namespace std;
  */
 
 CCriticalSection cs_main;
-
 BlockMap mapBlockIndex;
-std::map<uint256, marketBranch *> marketBranches;
-std::map<uint256, uint256> marketDecisionToBranch;
-std::map<uint256, uint256> marketOutcomeToBranch;
-std::map<uint256, uint256> marketMarketToBranch;
-
 CChain chainActive;
 CBlockIndex *pindexBestHeader = NULL;
 int64_t nTimeBestReceived = 0;
@@ -57,7 +51,7 @@ CConditionVariable cvBlockChange;
 int nScriptCheckThreads = 0;
 bool fImporting = false;
 bool fReindex = false;
-bool fTxIndex = true;
+bool fTxIndex = false;
 bool fMarketIndex = true;
 bool fIsBareMultisigStd = true;
 unsigned int nCoinCacheSize = 5000;
@@ -1102,20 +1096,6 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
 
         // Store transaction in memory
         pool.addUnchecked(hash, entry);
-
-        // Store any market scripts
-        BOOST_FOREACH(const CTxOut& txout, tx.vout) {
-           const CScript& scriptPubKey = txout.scriptPubKey;
-           size_t script_sz = scriptPubKey.size();
-           if ((script_sz < 2) ||
-               (scriptPubKey[script_sz-1] != OP_MARKET))
-                   continue;
-           marketObj *obj = marketObjCtr(scriptPubKey);
-           if (!obj)
-               continue;
-           obj->txid = tx.GetHash();
-           InsertMarketIndex(obj->GetHash(), obj);
-        }
     }
 
     SyncWithWallets(tx, NULL);
@@ -1881,8 +1861,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     if (fMarketIndex)
     {
+        /* vMarketObj is a vector of all market objects in the block */
         std::vector<std::pair<uint256, const marketObj *> > vMarketObj;
-        for (unsigned int i = 0; i < block.vtx.size(); i++) {
+        for (unsigned int i=0; i < block.vtx.size(); i++) {
             const CTransaction &tx = block.vtx[i];
             BOOST_FOREACH(const CTxOut& txout, tx.vout) {
                 const CScript& scriptPubKey = txout.scriptPubKey;
@@ -1897,14 +1878,14 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 vMarketObj.push_back(std::make_pair(obj->GetHash(), obj));
             }
         }
+        /* write vMarketObj to tx db */
         if (vMarketObj.size()) {
             bool ret = pmarkettree->WriteMarketIndex(vMarketObj);
-            for(uint32_t i=0; i < vMarketObj.size(); i++) {
-                marketObj *obj = (marketObj *) vMarketObj[i].second;
-                InsertMarketIndex(obj->GetHash(), obj);
-            }
             if (!ret)
                 return state.Abort("Failed to write market index");
+            for (size_t i=0; i < vMarketObj.size(); i++) {
+                delete vMarketObj[i].second;
+            }
         }
     }
 
@@ -2917,196 +2898,6 @@ CBlockIndex * InsertBlockIndex(uint256 hash)
     return pindexNew;
 }
 
-
-
-void InsertMarketIndex(const uint256 &objid, marketObj *obj)
-{
-    bool debug = true;
-    if (objid.IsNull())
-        return;
-
-    if (!obj)
-        return;
-
-    // fill obj->nHeight if recorded
-    // TODO: logic needs to be better.
-    {
-        CDiskTxPos postx;
-        if (pblocktree->ReadTxIndex(obj->txid, postx)) {
-            uint32_t chainSize = chainActive.Height() + 1;
-            for(uint32_t i=0; i < chainSize; i++) {
-               const CBlockIndex *pBlockIndex = chainActive[i];
-               if (pBlockIndex->nFile != postx.nFile)
-                  continue;
-               if (pBlockIndex->nDataPos <= postx.nPos)
-                  obj->nHeight = pBlockIndex->nHeight;
-            }
-            
-            if (obj->marketop == 'B') {
-                marketBranch *mobj = (marketBranch *) obj;
-                CTransaction txOut;
-                CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
-                if (!file.IsNull()) {
-                    try {
-                        CBlockHeader header;
-                        file >> header;
-                        fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
-                        file >> mobj->tx;
-                    } catch (const std::exception& e) {
-                        ; //
-                    }
-                }
-            }
-        }
-        else
-        {
-            cout << "InsertMarketIndex cannot ReadTxIndex for " << obj->txid.ToString() << endl;
-        }
-    }
-
-
-    if (obj->marketop == 'B') {
-        marketBranch *mobj = (marketBranch *) obj;
-        if (marketBranches.find(objid) != marketBranches.end())
-            // already exists. drop.
-            delete mobj;
-        else {
-            // record new branch
-            marketBranches[objid] = mobj;
-            if (debug) {
-                cout << "New Branch" << endl;
-                cout << mobj->ToString() << endl;
-            }
-        }
-    }
-    else
-    if (obj->marketop == 'D') {
-        marketDecision *mobj = (marketDecision *) obj;
-        std::map<uint256, marketBranch *>::const_iterator bit
-            = marketBranches.find(mobj->branchid);
-        if (bit == marketBranches.end())
-            delete mobj; // branch does not exist. drop.
-        else {
-            marketBranch *branch = bit->second;
-            if (branch->decisions.find(objid) != branch->decisions.end())
-                delete mobj; // already exists. drop.
-            else { 
-                branch->decisions[objid] = mobj;
-                marketDecisionToBranch[objid] = mobj->branchid;
-                if (debug) {
-                    cout << "New Decision " << endl;
-                    cout << mobj->ToString() << endl;
-                }
-            }
-        }
-    }
-    else
-    if (obj->marketop == 'M') {
-        marketMarket *mobj = (marketMarket *) obj;
-        std::map<uint256, marketBranch *>::const_iterator bit
-            = marketBranches.find(mobj->branchid);
-        if (bit == marketBranches.end())
-            delete mobj; // branch does not exist. drop.
-        else {
-            marketBranch *branch = bit->second;
-            if (branch->markets.find(objid) != branch->markets.end())
-                delete mobj; // already exists. drop.
-            else { 
-                branch->markets[objid] = mobj;
-                marketMarketToBranch[objid] = mobj->branchid;
-                if (debug) {
-                    cout << "New Market " << endl;
-                    cout << mobj->ToString() << endl;
-                }
-            }
-        }
-    }
-    else
-    if (obj->marketop == 'O') {
-        marketOutcome *mobj = (marketOutcome *) obj;
-        std::map<uint256, marketBranch *>::const_iterator bit
-            = marketBranches.find(mobj->branchid);
-        if (bit == marketBranches.end())
-            delete mobj; // branch does not exist. drop.
-        else {
-            marketBranch *branch = bit->second;
-            if (branch->outcomes.find(objid) != branch->outcomes.end())
-                delete mobj; // already exists. drop.
-            else { 
-                branch->outcomes[objid] = mobj;
-                marketOutcomeToBranch[objid] = mobj->branchid;
-                if (debug) {
-                    cout << "New Outcome " << endl;
-                    cout << mobj->ToString() << endl;
-                }
-            }
-        }
-    }
-    else
-    if(obj->marketop == 'T') {
-        marketTrade *mobj = (marketTrade *) obj;
-        std::map<uint256, uint256>::const_iterator it
-            = marketMarketToBranch.find(mobj->marketid);
-        if (it == marketMarketToBranch.end())
-            delete mobj; // marketid map does not exist. drop
-        else {
-            std::map<uint256, marketBranch *>::const_iterator bit
-                = marketBranches.find(it->second);
-            if (bit == marketBranches.end())
-                delete mobj; // branch does not exist. drop.
-            else {
-                marketBranch *branch = bit->second;
-                std::map<uint256, marketMarket *>::const_iterator mit
-                    = branch->markets.find(mobj->marketid);
-                if (mit == branch->markets.end())
-                    delete mobj; // market does not exist. drop.
-                else {
-                    marketMarket *market = mit->second;
-                    if (market->trades.find(objid) != market->trades.end())
-                        delete mobj; // already exists. drop.
-                    else { 
-                        market->trades[objid] = mobj;
-                        if (debug) {
-                            cout << "New Trade " << endl;
-                            cout << mobj->ToString() << endl;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else
-    if(obj->marketop == 'V') {
-        marketVote *mobj = (marketVote *) obj;
-        std::map<uint256, marketBranch *>::const_iterator bit
-            = marketBranches.find(mobj->branchid);
-        if (bit == marketBranches.end())
-            delete mobj; // branch does not exist. drop.
-        else {
-            marketBranch *branch = bit->second;
-            if (mobj->height % branch->tau != 0)
-                delete mobj; // bad height   
-            else {
-                marketBallot *ballot = NULL;
-                if (branch->ballots.find(mobj->height) == branch->ballots.end()) {
-                    ballot = new marketBallot;
-                    ballot->height = mobj->height;
-                    branch->ballots[mobj->height] = ballot;
-                }
-                if (ballot->votes.find(objid) != ballot->votes.end())
-                    delete mobj; // already exists. drop.
-                else {
-                    ballot->votes[objid] = mobj;
-                    if (debug) {
-                        cout << "New Vote " << endl;
-                        cout << mobj->ToString() << endl;
-                    }
-                }
-            }
-        }
-    }
-}
-
 bool static LoadBlockIndexDB()
 {
     if (!pblocktree->LoadBlockIndexGuts())
@@ -3204,9 +2995,6 @@ bool static LoadBlockIndexDB()
     // Check whether we have a market index
     pmarkettree->ReadFlag("market", fMarketIndex);
     LogPrintf("LoadBlockIndexDB(): market index %s\n", fMarketIndex ? "enabled" : "disabled");
-    if (!pmarkettree->LoadMarketIndexGuts())
-        return false;
-
 
     LogPrintf("LoadBlockIndexDB(): hashBestChain=%s height=%d date=%s progress=%f\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(),
@@ -3327,7 +3115,7 @@ bool InitBlockIndex() {
         return true;
 
     // Use the provided setting for -txindex in the new database
-    fTxIndex = GetBoolArg("-txindex", true);
+    fTxIndex = GetBoolArg("-txindex", false);
     pblocktree->WriteFlag("txindex", fTxIndex);
     pmarkettree->WriteFlag("market", fMarketIndex);
     LogPrintf("Initializing databases...\n");
@@ -3371,10 +3159,6 @@ bool InitBlockIndex() {
                 UpdateCoins(block.vtx[i], state, coins, undoDummy, 0);
             coins.Flush();
 
-            // Insert Genesis Branch to memory
-            marketBranch *genesisBranch = new marketBranch(Params().GenesisBranch());
-            InsertMarketIndex(genesisBranch->GetHash(), genesisBranch);
-
             // Force a chainstate write so that when we VerifyDB in a moment, it doesn't check stale data
             return FlushStateToDisk(state, FLUSH_STATE_ALWAYS);
         } catch (const std::runtime_error& e) {
@@ -3384,8 +3168,6 @@ bool InitBlockIndex() {
 
     return true;
 }
-
-
 
 bool LoadExternalBlockFile(FILE* fileIn, CDiskBlockPos *dbp)
 {

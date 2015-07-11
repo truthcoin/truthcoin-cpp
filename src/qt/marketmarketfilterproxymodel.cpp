@@ -26,7 +26,7 @@ bool MarketMarketFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelI
         QString tagsString = index.data(MarketMarketTableModel::TagsRole).toString();
         QStringList tags = tagsString.split(',');
         bool hasTag = false;
-        for(uint32_t i=0; i < tags.size(); i++) {
+        for(ssize_t i=0; i < tags.size(); i++) {
             if (QString::compare(filterTag,tags[i],Qt::CaseSensitive) == 0) {
                 hasTag = true; 
                 break;
