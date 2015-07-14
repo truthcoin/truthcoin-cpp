@@ -16,6 +16,7 @@
 #include "optionsmodel.h"
 #include "overviewpage.h"
 #include "receivecoinsdialog.h"
+#include "resolvevotedialog.h"
 #include "scicon.h"
 #include "sendcoinsdialog.h"
 #include "signverifymessagedialog.h"
@@ -251,6 +252,16 @@ void WalletView::gotoVerifyMessageTab(QString addr)
 
     if (!addr.isEmpty())
         signVerifyMessageDialog->setAddress_VM(addr);
+}
+
+void WalletView::gotoResolveVoteTab()
+{
+    ResolveVoteDialog *resolveVoteDialog = new ResolveVoteDialog(this);
+    resolveVoteDialog->setAttribute(Qt::WA_DeleteOnClose);
+    resolveVoteDialog->setModel(walletModel);
+    resolveVoteDialog->show();
+    resolveVoteDialog->raise();
+    resolveVoteDialog->setFocus();
 }
 
 bool WalletView::handlePaymentRequest(const SendCoinsRecipient& recipient)

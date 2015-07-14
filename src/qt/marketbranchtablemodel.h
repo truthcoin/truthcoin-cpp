@@ -5,8 +5,6 @@
 #ifndef TRUTHCOIN_QT_MARKETBRANCHTABLEMODEL_H
 #define TRUTHCOIN_QT_MARKETBRANCHTABLEMODEL_H
 
-#include "truthcoinunits.h"
-
 #include <QAbstractTableModel>
 #include <QStringList>
 

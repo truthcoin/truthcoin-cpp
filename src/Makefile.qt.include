@@ -138,6 +138,10 @@ QT_MOC_CPP = \
   qt/moc_receivecoinsdialog.cpp \
   qt/moc_receiverequestdialog.cpp \
   qt/moc_recentrequeststablemodel.cpp \
+  qt/moc_resolvevotedialog.cpp \
+  qt/moc_resolvevotecoltablemodel.cpp \
+  qt/moc_resolvevoterowtablemodel.cpp \
+  qt/moc_resolvevoteinputtablemodel.cpp \
   qt/moc_rpcconsole.cpp \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
@@ -222,6 +226,10 @@ TRUTHCOIN_QT_H = \
   qt/receivecoinsdialog.h \
   qt/receiverequestdialog.h \
   qt/recentrequeststablemodel.h \
+  qt/resolvevotedialog.h \
+  qt/resolvevotecoltablemodel.h \
+  qt/resolvevoterowtablemodel.h \
+  qt/resolvevoteinputtablemodel.h \
   qt/rpcconsole.h \
   qt/scicon.h \
   qt/sendcoinsdialog.h \
@@ -282,6 +290,7 @@ RES_ICONS = \
   qt/res/icons/quit.png \
   qt/res/icons/receive.png \
   qt/res/icons/remove.png \
+  qt/res/icons/resolve.png \
   qt/res/icons/send.png \
   qt/res/icons/synced.png \
   qt/res/icons/transaction0.png \
@@ -350,6 +359,10 @@ TRUTHCOIN_QT_CPP += \
   qt/receivecoinsdialog.cpp \
   qt/receiverequestdialog.cpp \
   qt/recentrequeststablemodel.cpp \
+  qt/resolvevotedialog.cpp \
+  qt/resolvevotecoltablemodel.cpp \
+  qt/resolvevoterowtablemodel.cpp \
+  qt/resolvevoteinputtablemodel.cpp \
   qt/sendcoinsdialog.cpp \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \

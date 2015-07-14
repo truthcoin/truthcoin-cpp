@@ -5,10 +5,8 @@
 #ifndef TRUTHCOIN_QT_MARKETTRADEWINDOW_H
 #define TRUTHCOIN_QT_MARKETTRADEWINDOW_H
 
-#include "guiutil.h"
-
 #include <QDialog>
-#include <QLabel>
+#include <QModelIndex>
 
 class marketBranch;
 class marketDecision;
@@ -20,6 +18,7 @@ class WalletModel;
 
 
 QT_BEGIN_NAMESPACE
+class QEvent;
 class QLineEdit;
 class QTableView;
 QT_END_NAMESPACE
@@ -43,6 +42,7 @@ public:
     void setModel(WalletModel *);
     void onMarketChange(const marketBranch *, const marketDecision *, const marketMarket *);
     const MarketTradeTableModel *getTradeModel(void) const { return tableModel; }
+    bool eventFilter(QObject *, QEvent *);
 
 private:
     QLineEdit *filterAddress;

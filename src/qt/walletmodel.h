@@ -23,6 +23,9 @@ class MarketMarketTableModel;
 class MarketTradeTableModel;
 class OptionsModel;
 class RecentRequestsTableModel;
+class ResolveVoteColTableModel;
+class ResolveVoteRowTableModel;
+class ResolveVoteInputTableModel;
 class TransactionTableModel;
 class WalletModelTransaction;
 
@@ -132,6 +135,9 @@ public:
     MarketDecisionTableModel *getMarketDecisionTableModel();
     MarketMarketTableModel *getMarketMarketTableModel();
     MarketTradeTableModel *getMarketTradeTableModel();
+    ResolveVoteColTableModel *getResolveVoteColTableModel();
+    ResolveVoteRowTableModel *getResolveVoteRowTableModel();
+    ResolveVoteInputTableModel *getResolveVoteInputTableModel();
     TransactionTableModel *getTransactionTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
 
@@ -218,6 +224,9 @@ private:
     MarketDecisionTableModel *marketDecisionTableModel;
     MarketMarketTableModel *marketMarketTableModel;
     MarketTradeTableModel *marketTradeTableModel;
+    ResolveVoteColTableModel *resolveVoteColTableModel;
+    ResolveVoteRowTableModel *resolveVoteRowTableModel;
+    ResolveVoteInputTableModel *resolveVoteInputTableModel;
     TransactionTableModel *transactionTableModel;
     RecentRequestsTableModel *recentRequestsTableModel;
 

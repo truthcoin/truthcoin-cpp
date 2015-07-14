@@ -5,10 +5,8 @@
 #ifndef TRUTHCOIN_QT_MARKETBRANCHWINDOW_H
 #define TRUTHCOIN_QT_MARKETBRANCHWINDOW_H
 
-#include "guiutil.h"
-
 #include <QDialog>
-#include <QLabel>
+#include <QModelIndex>
 
 class MarketBranchFilterProxyModel;
 class MarketBranchTableModel;
@@ -16,6 +14,7 @@ class MarketView;
 class WalletModel;
 
 QT_BEGIN_NAMESPACE
+class QEvent;
 class QLineEdit;
 class QTableView;
 QT_END_NAMESPACE
@@ -43,6 +42,7 @@ public:
     explicit MarketBranchWindow(QWidget *parent=0);
     void setModel(WalletModel *);
     void setTableViewFocus(void);
+    bool eventFilter(QObject *, QEvent *);
 
 private:
     QLineEdit *filterDescription;

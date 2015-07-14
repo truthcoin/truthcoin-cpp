@@ -8,16 +8,19 @@
 #include "marketview.h"
 #include "walletmodel.h"
 
+#include <QApplication>
+#include <QClipboard>
 #include <QGridLayout>
 #include <QHBoxLayout>
-#include <QHeaderView>
 #include <QItemSelection>
+#include <QItemSelectionModel>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QScrollBar>
 #include <QTableView>
 #include <QVBoxLayout>
+
 
 MarketTradeWindow::MarketTradeWindow(QWidget *parent)
    : marketView((MarketView *)parent),
@@ -32,9 +35,10 @@ MarketTradeWindow::MarketTradeWindow(QWidget *parent)
     vlayout->setContentsMargins(0,0,0,0);
     vlayout->setSpacing(0);
 
-    QGridLayout *glayout = new QGridLayout(this);
+    QGridLayout *glayout = new QGridLayout();
     glayout->setHorizontalSpacing(0);
     glayout->setVerticalSpacing(0);
+    vlayout->addLayout(glayout);
 
     QLabel *filterByAddressLabel = new QLabel(tr("Filter By Address: "));
     filterByAddressLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
@@ -45,17 +49,13 @@ MarketTradeWindow::MarketTradeWindow(QWidget *parent)
     glayout->addWidget(filterAddress, 0, 1);
     connect(filterAddress, SIGNAL(textChanged(QString)), this, SLOT(filterAddressChanged(QString)));
 
-    QTableView *view = new QTableView(this);
-    vlayout->addLayout(glayout);
-    vlayout->addWidget(view);
-    vlayout->setSpacing(0);
-
-    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    view->setTabKeyNavigation(false);
-    view->setContextMenuPolicy(Qt::CustomContextMenu);
-    view->installEventFilter(this);
-
-    tableView = view;
+    tableView = new QTableView();
+    tableView->installEventFilter(this);
+    tableView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    tableView->setTabKeyNavigation(false);
+    tableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    tableView->setAlternatingRowColors(true);
+    vlayout->addWidget(tableView);
 }
 
 void MarketTradeWindow::setModel(WalletModel *model)
@@ -127,5 +127,38 @@ void MarketTradeWindow::filterAddressChanged(const QString &str)
 {
     if (proxyModel)
         proxyModel->setFilterAddress(str);
+}
+
+bool MarketTradeWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == tableView)
+    {
+        if (event->type() == QEvent::KeyPress)
+        {
+            QKeyEvent *ke = static_cast<QKeyEvent *>(event);
+            if ((ke->key() == Qt::Key_C)
+                && (ke->modifiers().testFlag(Qt::ControlModifier)))
+            {
+                /* Ctrl-C: copy the selected cells in TableModel */
+                QString selected_text;
+                QItemSelectionModel *selection = tableView->selectionModel();
+                QModelIndexList indexes = selection->selectedIndexes();
+                int prev_row = -1;
+                for(int i=0; i < indexes.size(); i++) {
+                    QModelIndex index = indexes.at(i);
+                    if (i) {
+                        char c = (index.row() != prev_row)? '\n': '\t';
+                        selected_text.append(c);
+                    }
+                    QVariant data = tableView->model()->data(index);
+                    selected_text.append( data.toString() );
+                    prev_row = index.row();
+                }
+                QApplication::clipboard()->setText(selected_text);
+                return true;
+            }
+        }
+    }
+    return QDialog::eventFilter(obj, event);
 }
 

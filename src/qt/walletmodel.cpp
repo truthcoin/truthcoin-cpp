@@ -12,6 +12,9 @@
 #include "marketmarkettablemodel.h"
 #include "markettradetablemodel.h"
 #include "recentrequeststablemodel.h"
+#include "resolvevotecoltablemodel.h"
+#include "resolvevoterowtablemodel.h"
+#include "resolvevoteinputtablemodel.h"
 #include "transactiontablemodel.h"
 
 #include "base58.h"
@@ -37,6 +40,9 @@ WalletModel::WalletModel(CWallet *wallet, OptionsModel *optionsModel, QObject *p
     marketDecisionTableModel(0),
     marketMarketTableModel(0),
     marketTradeTableModel(0),
+    resolveVoteColTableModel(0),
+    resolveVoteRowTableModel(0),
+    resolveVoteInputTableModel(0),
     transactionTableModel(0),
     recentRequestsTableModel(0),
     cachedBalance(0), cachedUnconfirmedBalance(0), cachedImmatureBalance(0),
@@ -51,6 +57,9 @@ WalletModel::WalletModel(CWallet *wallet, OptionsModel *optionsModel, QObject *p
     marketDecisionTableModel = new MarketDecisionTableModel(wallet, this);
     marketMarketTableModel = new MarketMarketTableModel(wallet, this);
     marketTradeTableModel = new MarketTradeTableModel(wallet, this);
+    resolveVoteColTableModel = new ResolveVoteColTableModel(wallet, this);
+    resolveVoteRowTableModel = new ResolveVoteRowTableModel(wallet, this);
+    resolveVoteInputTableModel = new ResolveVoteInputTableModel(wallet, this);
     transactionTableModel = new TransactionTableModel(wallet, this);
     recentRequestsTableModel = new RecentRequestsTableModel(wallet, this);
 
@@ -395,6 +404,21 @@ MarketMarketTableModel *WalletModel::getMarketMarketTableModel()
 MarketTradeTableModel *WalletModel::getMarketTradeTableModel()
 {
     return marketTradeTableModel;
+}
+
+ResolveVoteColTableModel *WalletModel::getResolveVoteColTableModel()
+{
+    return resolveVoteColTableModel;
+}
+
+ResolveVoteRowTableModel *WalletModel::getResolveVoteRowTableModel()
+{
+    return resolveVoteRowTableModel;
+}
+
+ResolveVoteInputTableModel *WalletModel::getResolveVoteInputTableModel()
+{
+    return resolveVoteInputTableModel;
 }
 
 TransactionTableModel *WalletModel::getTransactionTableModel()

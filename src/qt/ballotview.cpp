@@ -101,7 +101,6 @@ BallotView::BallotView(QWidget *parent)
     scrollArea->setWidgetResizable(false);
 
     scrollWidget = new QWidget();
-    // QGridLayout *scrollLayout = new QGridLayout(scrollWidget);
     scrollArea->setWidget(scrollWidget);
     v2layout->addWidget(scrollArea);
 
@@ -210,7 +209,7 @@ void BallotView::refresh(void)
 
 void BallotView::changedBranch(int i)
 {
-    branch = ((i < 0) || (((unsigned int) i) >= branches.size()))? 0: branches[i];
+    branch = ((i < 0) || ((unsigned int)i >= branches.size()))? 0: branches[i];
     refresh();
 }
 
