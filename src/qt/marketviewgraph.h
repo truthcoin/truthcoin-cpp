@@ -5,13 +5,8 @@
 #ifndef TRUTHCOIN_QT_MARKETVIEWGRAPH_H
 #define TRUTHCOIN_QT_MARKETVIEWGRAPH_H
 
+#include <stdint.h>
 #include <QWidget>
-
-class MarketView;
-
-QT_BEGIN_NAMESPACE
-class QWidget;
-QT_END_NAMESPACE
 
 
 class MarketViewGraph
@@ -20,23 +15,15 @@ class MarketViewGraph
     Q_OBJECT
 
 public:
-    explicit MarketViewGraph(QWidget *parent = 0);
-
+    explicit MarketViewGraph(QWidget *parent=0);
     void paintEvent(QPaintEvent *);
-    void setData(const double *X, const double *Y, unsigned int N);
+    void setData(const double *X, const double *Y, uint32_t N);
 
 private:
-    MarketView *marketView;
-
-    /* data */
-    double *X;
-    double *Y;
-    unsigned int N;
+    double *X;  /* X[] */
+    double *Y;  /* Y[] */
+    uint32_t N;
     bool dataIsChanging;
-
-signals:
-
-public slots:
 };
 
 #endif // TRUTHCOIN_QT_MARKETVIEWGRAPH_H

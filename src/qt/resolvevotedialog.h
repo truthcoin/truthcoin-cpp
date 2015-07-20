@@ -9,12 +9,15 @@
 
 struct tc_vote;
 class ResolveVoteColTableModel;
-class ResolveVoteRowTableModel;
+class ResolveVoteGraph;
 class ResolveVoteInputTableModel;
+class ResolveVoteRowTableModel;
 class WalletModel;
 
 QT_BEGIN_NAMESPACE
 class QEvent;
+class QLabel;
+class QLineEdit;
 class QTableView;
 QT_END_NAMESPACE
 
@@ -24,30 +27,44 @@ class ResolveVoteDialog
     Q_OBJECT
 
 public:
-    explicit ResolveVoteDialog(QWidget *parent);
+    explicit ResolveVoteDialog(QWidget *parent=0);
     ~ResolveVoteDialog();
     void setModel(WalletModel *model);
     bool eventFilter(QObject *, QEvent *);
 
 private:
-    unsigned int nVoters, nDecisions;
-    double NA;
-    double alpha;
-    double tol;
     struct tc_vote *vote;
+    unsigned int vote_proc_rc;
 
     WalletModel *model;
+    QLabel *nVotersLabel; /* nVotes: nVoters */
+    QLineEdit *nVotersLineEdit;
+    QLabel *nDecisionsLabel; /* nDecisions: nDecisions */
+    QLineEdit *nDecisionsLineEdit;
+    QLabel *alphaLabel; /* alpha: alpha */
+    QLineEdit *alphaLineEdit;
+    QLabel *tolLabel; /* tol: tol */
+    QLineEdit *tolLineEdit;
+    QLabel *NALabel; /* NA: NA */
+    QLineEdit *NALineEdit;
     QTableView *inputTableView;
     ResolveVoteInputTableModel *inputTableModel;
+    QLabel *voteProcRCLabel[2]; /* rc: rc */
     QTableView *rowTableView;
     ResolveVoteRowTableModel *rowTableModel;
     QTableView *colTableView;
     ResolveVoteColTableModel *colTableModel;
+    ResolveVoteGraph *resolveVoteGraph;
 
 private slots:
-    void onAddVoter(void);
-    void onAddDecision(void);
-    void onCalculate(void);
+    void onNVotersChange();
+    void onNDecisionsChange();
+    void onAlphaChange();
+    void onTolChange();
+    void onNAChange();
+
+public slots:
+    void onInputChange(void);
 };
 
 #endif // TRUTHCOIN_QT_RESOLVEVOTEDIALOG_H

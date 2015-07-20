@@ -5,12 +5,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "marketviewgraph.h"
-#include "marketview.h"
 
+#include <QPaintEvent>
 #include <QPainter>
 #include <QPoint>
+#include <QRectF>
+#include <QString>
 
-int qpoint_cmp(const void *aptr, const void *bptr)
+
+static int qpoint_cmp(const void *aptr, const void *bptr)
 {
     const QPoint *a = *(const QPoint **) aptr;
     const QPoint *b = *(const QPoint **) bptr;
@@ -19,7 +22,7 @@ int qpoint_cmp(const void *aptr, const void *bptr)
     return 0;
 }
 
-void draw_graph(
+static void draw_graph(
     QPainter &painter,
     int w, /* width */
     int h, /* height */
@@ -29,7 +32,7 @@ void draw_graph(
     unsigned int N /* number of X[], Y[] */
     )
 {
-    if ((w <= 3*margin) || (h <= 2*margin) || !X || !Y || !N)
+    if ((w <= 3*margin) || (h <= 2*margin))
        return;
 
     /* Qt coordinate system */
@@ -44,6 +47,9 @@ void draw_graph(
     /* draw boundary rectangle */
     QRectF rectangle(x0, y0, x1-x0, y1-y0);
     painter.drawRect(rectangle);
+
+    if (!X || !Y || !N)
+       return;
 
     double Xmin = X[0];
     double Xmax = X[0];
@@ -127,7 +133,6 @@ void draw_graph(
 
 MarketViewGraph::MarketViewGraph(QWidget *parent)
     : QWidget(parent),
-    marketView((MarketView *)parent),
     X(0), Y(0), N(0),
     dataIsChanging(false)
 {
@@ -136,7 +141,7 @@ MarketViewGraph::MarketViewGraph(QWidget *parent)
 
 void MarketViewGraph::paintEvent(QPaintEvent *)
 {
-    if (!X || !Y || !N || dataIsChanging)
+    if (dataIsChanging)
        return;
 
     QPainter painter(this);

@@ -256,7 +256,7 @@ void WalletView::gotoVerifyMessageTab(QString addr)
 
 void WalletView::gotoResolveVoteTab()
 {
-    ResolveVoteDialog *resolveVoteDialog = new ResolveVoteDialog(this);
+    ResolveVoteDialog *resolveVoteDialog = new ResolveVoteDialog();
     resolveVoteDialog->setAttribute(Qt::WA_DeleteOnClose);
     resolveVoteDialog->setModel(walletModel);
     resolveVoteDialog->show();

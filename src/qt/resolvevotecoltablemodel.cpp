@@ -7,17 +7,11 @@ extern "C"{
 #include "linalg/src/tc_mat.h"
 }
 #include "resolvevotecoltablemodel.h"
-#include "wallet.h"
-#include "walletmodel.h"
-
-#include <QPoint>
 
 
-ResolveVoteColTableModel::ResolveVoteColTableModel(CWallet *wallet, WalletModel *parent)
-    : QAbstractTableModel(parent),
-    voteptr(0),
-    wallet(wallet),
-    walletModel(parent)
+ResolveVoteColTableModel::ResolveVoteColTableModel()
+    : QAbstractTableModel(0),
+    voteptr(0)
 {
 }
 

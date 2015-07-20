@@ -139,6 +139,7 @@ QT_MOC_CPP = \
   qt/moc_receiverequestdialog.cpp \
   qt/moc_recentrequeststablemodel.cpp \
   qt/moc_resolvevotedialog.cpp \
+  qt/moc_resolvevotegraph.cpp \
   qt/moc_resolvevotecoltablemodel.cpp \
   qt/moc_resolvevoterowtablemodel.cpp \
   qt/moc_resolvevoteinputtablemodel.cpp \
@@ -227,6 +228,7 @@ TRUTHCOIN_QT_H = \
   qt/receiverequestdialog.h \
   qt/recentrequeststablemodel.h \
   qt/resolvevotedialog.h \
+  qt/resolvevotegraph.h \
   qt/resolvevotecoltablemodel.h \
   qt/resolvevoterowtablemodel.h \
   qt/resolvevoteinputtablemodel.h \
@@ -360,6 +362,7 @@ TRUTHCOIN_QT_CPP += \
   qt/receiverequestdialog.cpp \
   qt/recentrequeststablemodel.cpp \
   qt/resolvevotedialog.cpp \
+  qt/resolvevotegraph.cpp \
   qt/resolvevotecoltablemodel.cpp \
   qt/resolvevoterowtablemodel.cpp \
   qt/resolvevoteinputtablemodel.cpp \

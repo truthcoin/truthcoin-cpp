@@ -3,19 +3,19 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 extern "C" {
 #include "linalg/src/tc_mat.h"
 }
+#include "resolvevotedialog.h"
 #include "resolvevoteinputtablemodel.h"
-#include "wallet.h"
-#include "walletmodel.h"
 
-ResolveVoteInputTableModel::ResolveVoteInputTableModel(CWallet *wallet, WalletModel *parent)
-    : QAbstractTableModel(parent),
-    voteptr(0),
-    wallet(wallet),
-    walletModel(parent)
+
+ResolveVoteInputTableModel::ResolveVoteInputTableModel()
+    : QAbstractTableModel(0),
+    resolveVoteDialog(0),
+    voteptr(0)
 {
 
 }
@@ -127,6 +127,17 @@ Qt::ItemFlags ResolveVoteInputTableModel::flags(const QModelIndex &index) const
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
 }
 
+void ResolveVoteInputTableModel::onDataChange()
+{
+    uint32_t nr = 3 + ((voteptr && *voteptr)? (*voteptr)->nr: 0);
+    uint32_t nc = (voteptr && *voteptr)? (*voteptr)->nc: 0;
+    if (nc) {
+        QModelIndex topLeft = index(0, 0, QModelIndex());
+        QModelIndex bottomRight = index(nr-1, nc-1, QModelIndex());
+        emit dataChanged(topLeft, bottomRight);
+    }
+}
+
 bool ResolveVoteInputTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (role != Qt::EditRole)
@@ -139,6 +150,7 @@ bool ResolveVoteInputTableModel::setData(const QModelIndex &index, const QVarian
     if (!str)
         return false;
 
+    bool isNA = (strstr(str, "NA"))? true: false;
     double dvalue = atof(str);
 
     int row = index.row();
@@ -156,16 +168,14 @@ bool ResolveVoteInputTableModel::setData(const QModelIndex &index, const QVarian
         if (row == 2) {
         }
         else {
-           (*voteptr)->M->a[row-3][col] = dvalue;
+           (*voteptr)->M->a[row-3][col] = (isNA)? (*voteptr)->NA:  dvalue;
         }
 
         emit dataChanged(index, index);
+
+        if (resolveVoteDialog)
+            resolveVoteDialog->onInputChange();
     }
     return false;
-}
-
-void ResolveVoteInputTableModel::onVoteChange(void)
-{
-
 }
 

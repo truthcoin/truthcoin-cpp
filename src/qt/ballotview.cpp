@@ -95,12 +95,11 @@ BallotView::BallotView(QWidget *parent)
     v1layout->addLayout(glayout);
 
     /* add scroll area to v2 */
+    scrollWidget = new QWidget();
     scrollArea = new QScrollArea();
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     scrollArea->setWidgetResizable(false);
-
-    scrollWidget = new QWidget();
     scrollArea->setWidget(scrollWidget);
     v2layout->addWidget(scrollArea);
 

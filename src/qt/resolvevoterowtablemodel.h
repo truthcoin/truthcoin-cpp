@@ -8,8 +8,6 @@
 #include <QAbstractTableModel>
 
 struct tc_vote;
-class CWallet;
-class WalletModel;
 
 class ResolveVoteRowTableModel
     : public QAbstractTableModel
@@ -17,7 +15,7 @@ class ResolveVoteRowTableModel
     Q_OBJECT
 
 public:
-    explicit ResolveVoteRowTableModel(CWallet *, WalletModel * = 0);
+    ResolveVoteRowTableModel();
     ~ResolveVoteRowTableModel();
     void setVotePtr(tc_vote **ptr) { voteptr = ptr; }
     int rowCount(const QModelIndex &) const;
@@ -26,11 +24,21 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     Qt::ItemFlags flags(const QModelIndex &) const;
     void onVoteChange(unsigned int, unsigned int);
+    void callBeginInsertColumns(const QModelIndex &parent, int first, int last) {
+        beginInsertColumns(parent, first, last); }
+    void callEndInsertColumns(void) { endInsertColumns(); }
+    void callBeginRemoveColumns(const QModelIndex &parent, int first, int last) {
+        beginRemoveColumns(parent, first, last); }
+    void callEndRemoveColumns(void) { endRemoveColumns(); }
+    void callBeginInsertRows(const QModelIndex &parent, int first, int last) {
+        beginInsertRows(parent, first, last); }
+    void callEndInsertRows(void) { endInsertRows(); }
+    void callBeginRemoveRows(const QModelIndex &parent, int first, int last) {
+        beginRemoveRows(parent, first, last); }
+    void callEndRemoveRows(void) { endRemoveRows(); }
 
 private:
     tc_vote **voteptr;
-    CWallet *wallet;
-    WalletModel *walletModel;
 
 public slots:
 };

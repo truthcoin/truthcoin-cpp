@@ -57,9 +57,9 @@ WalletModel::WalletModel(CWallet *wallet, OptionsModel *optionsModel, QObject *p
     marketDecisionTableModel = new MarketDecisionTableModel(wallet, this);
     marketMarketTableModel = new MarketMarketTableModel(wallet, this);
     marketTradeTableModel = new MarketTradeTableModel(wallet, this);
-    resolveVoteColTableModel = new ResolveVoteColTableModel(wallet, this);
-    resolveVoteRowTableModel = new ResolveVoteRowTableModel(wallet, this);
-    resolveVoteInputTableModel = new ResolveVoteInputTableModel(wallet, this);
+    resolveVoteColTableModel = new ResolveVoteColTableModel();
+    resolveVoteRowTableModel = new ResolveVoteRowTableModel();
+    resolveVoteInputTableModel = new ResolveVoteInputTableModel();
     transactionTableModel = new TransactionTableModel(wallet, this);
     recentRequestsTableModel = new RecentRequestsTableModel(wallet, this);
 

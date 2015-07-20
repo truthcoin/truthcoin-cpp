@@ -31,6 +31,7 @@
 #include <QRadioButton>
 #include <QScrollBar>
 #include <QSignalMapper>
+#include <QTabWidget>
 #include <QVBoxLayout>
 
 MarketView::MarketView(QWidget *parent)
@@ -121,12 +122,12 @@ MarketView::MarketView(QWidget *parent)
     tvlayout->addWidget(new QWidget(), 10); /* receives all the strectch */
 
     /* Trade Tab */
-    QTabWidget *tabs = new QTabWidget(this);
+    QTabWidget *tabs = new QTabWidget();
     QWidget *page0 = new QWidget();
     QWidget *page1 = new QWidget();
     QWidget *page2 = new QWidget();
     QWidget *page3 = new QWidget();
-    graphWidget = new MarketViewGraph(this);
+    graphWidget = new MarketViewGraph();
     QWidget *page4 = (QWidget *) graphWidget;
 
     initBranchTab(page0);
