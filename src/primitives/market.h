@@ -33,13 +33,6 @@ struct marketObj {
 };
 marketObj *marketObjCtr(const CScript &);
 
-struct marketObjBlockIndexLess {
-    inline bool operator()(const marketObj *a, const marketObj *b)
-    {
-        return (a->nHeight < b->nHeight)? true: false;
-    }
-};
-
 struct marketDecision : public marketObj {
     CKeyID keyID;
     uint256 branchid;
@@ -138,15 +131,9 @@ struct marketMarket : public marketObj {
     vector<uint8_t> decisionFunctionIDs;
     uint64_t account;
     uint32_t txPoW;
-    map<uint256, marketTrade *> trades; /* owner of memory */
-    multiset<marketTrade *, marketObjBlockIndexLess> orderedTrades;
 
     marketMarket(void) : marketObj() { marketop = 'M'; } 
-    virtual ~marketMarket(void) { 
-        std::map<uint256, marketTrade *>::iterator it;
-        for(it=trades.begin(); it != trades.end(); it++)
-            delete it->second;
-    } 
+    virtual ~marketMarket(void) { } 
 
     ADD_SERIALIZE_METHODS;
 
@@ -168,13 +155,11 @@ struct marketMarket : public marketObj {
     }
 
     string ToString(void) const;
-    void getNShares(double &, double &) const;
-    double getAccount(double, double) const;
 };
 
-double marketMarket_capitalrequired(
-    double B /* liquidity parameter */,
-    uint32_t nstates);
+void marketNShares(const vector<marketTrade *> &trades, double &nShares0, double &nShares1);
+double marketAccountValue(double B, double nShares0, double nShares1);
+double marketAccountValue(double B, uint32_t nstates);
 
 struct marketVote : public marketObj {
     uint256 branchid;
@@ -241,9 +226,11 @@ struct marketOutcome : public marketObj {
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(marketop);
+        READWRITE(nHeight);
         READWRITE(branchid);
-        READWRITE(voterIDs);
         READWRITE(nVoters);
+        READWRITE(voterIDs);
         READWRITE(oldRep);
         READWRITE(thisRep);
         READWRITE(smoothedRep);
@@ -266,6 +253,7 @@ struct marketOutcome : public marketObj {
         READWRITE(NA);
         READWRITE(alpha);
         READWRITE(tol);
+        READWRITE(tx);
     }
     string ToString(void) const;
     int calc(void);
@@ -303,24 +291,8 @@ struct marketBranch : public marketObj {
     uint16_t unsealTime;
     uint64_t consensusThreshold;
 
-    map<uint256, marketDecision *> decisions; /* owner of memory */
-    map<uint256, marketMarket *> markets; /* owner of memory */
-    map<uint256, marketOutcome *> outcomes; /* owner of memory */
-    map<uint32_t, marketBallot *> ballots; /* owner of memory */
-    CTransaction tx; /* last vote transaction. TODO: adjust according to forks  */
-
     marketBranch(void) : marketObj() { marketop = 'B'; } 
-    virtual ~marketBranch(void) {
-        std::map<uint256, marketDecision *>::iterator dit;
-        for(dit=decisions.begin(); dit != decisions.end(); dit++)
-            delete dit->second;
-        std::map<uint256, marketMarket *>::iterator mit;
-        for(mit=markets.begin(); mit != markets.end(); mit++)
-            delete mit->second;
-        std::map<uint256, marketOutcome *>::iterator oit;
-        for(oit=outcomes.begin(); oit != outcomes.end(); oit++)
-            delete oit->second;
-    } 
+    virtual ~marketBranch(void) { } 
 
     ADD_SERIALIZE_METHODS;
 

@@ -242,6 +242,8 @@ void MarketTradeTableModel::getData(double **Xptr, double **Yptr, unsigned int *
         unsigned int count = 0;
         for(unsigned int i=0; i < N; i++) {
             const marketTrade *trade = cached[i];
+            if (trade->nHeight == (uint32_t)(-1))
+                continue;
             uint8_t is_buy = (trade->decisionState == 1)? 1: 0;
             uint8_t is_sell = (trade->decisionState == 0)? 1: 0;
             if (is_buy || is_sell) {

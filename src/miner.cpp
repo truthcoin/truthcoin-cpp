@@ -58,19 +58,36 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
     outcome->alpha = 0.10; /* should be a branch parameter  */
     outcome->tol = 0.10; /* should be a branch parameter  */
     std::map<uint256, marketDecision *>::const_iterator dit;
-    for(dit=branch->decisions.begin(); dit != branch->decisions.end(); dit++) {
-        const marketDecision *decision = dit->second;
+
+    vector<marketDecision *> decisions = pmarkettree->GetDecisions(branch->GetHash());
+    for(size_t i=0; i < decisions.size(); i++) {
+        const marketDecision *decision = decisions[i];
         uint32_t blocknum = decision->eventOverBy + branch->ballotTime
             + branch->unsealTime;
         if (!((height - branch->tau <= blocknum) && (blocknum < height)))
             continue;
-        outcome->decisionIDs.push_back(dit->first);
+        outcome->decisionIDs.push_back(decision->GetHash());
         outcome->isScaled.push_back(decision->isScaled);
     }
     outcome->voteMatrix.clear();
     outcome->voteMatrix.resize(votes.size()*outcome->nDecisions, outcome->NA);
 
-    const CTransaction &tx = branch->tx;
+    vector<marketOutcome *> outcomes = pmarkettree->GetOutcomes(branch->GetHash());
+
+    CTransaction tx;
+    if (outcomes.size()) {
+        /* get the votecoins from the last outcome */
+        const marketOutcome *poutcome = NULL;
+        for(size_t i=0; i < outcomes.size(); i++)
+            if ((!poutcome) || (outcomes[i]->nHeight > poutcome->nHeight))
+                poutcome = outcomes[i];
+        tx = poutcome->tx;
+    }
+    else {
+        /* get the votecoins from the genesis block */
+        uint256 hashBlock;
+        GetTransaction(branch->txid, tx, hashBlock, true);
+    }
     for(uint32_t i=0; i < tx.vout.size(); i++) {
         uint160 u;
         vector<vector<unsigned char> > vSolutions;
@@ -129,12 +146,15 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
     }
     outcome->tx = mtx;
 
-    /* cache the new outcome */
-    branch->outcomes[ outcome->GetHash() ] = outcome;
-
     /* clean up */
     for(size_t i=0; i < vec.size(); i++)
         delete vec[i];
+
+    for(size_t i=0; i < decisions.size(); i++)
+        delete decisions[i];
+
+    for(size_t i=0; i < outcomes.size(); i++)
+        delete outcomes[i];
 
     return mtx;
 }

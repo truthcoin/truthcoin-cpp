@@ -51,17 +51,14 @@ static void draw_graph(
     if (!X || !Y || !N)
        return;
 
+    double Ymin = 0.0;
+    double Ymax = 1.0;
     double Xmin = X[0];
     double Xmax = X[0];
-    double Ymin = Y[0];
-    double Ymax = Y[0];
     for(uint32_t i=1; i < N; i++) {
        double x = X[i];
        if (x < Xmin) Xmin = x;
        if (x > Xmax) Xmax = x;
-       double y = Y[i];
-       if (y < Ymin) Ymin = y;
-       if (y > Ymax) Ymax = y;
     }
 
     if ((Xmax > Xmin) && (Ymax > Ymin)) {

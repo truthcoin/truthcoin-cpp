@@ -188,13 +188,6 @@ string marketMarket::ToString(void) const
     return str.str();
 }
 
-double marketMarket_capitalrequired(
-    double B /* liquidity parameter */,
-    uint32_t nstates)
-{
-    return B * FDLIBM_log((double)nstates);
-}
-
 string marketTrade::ToString(void) const
 {
     stringstream str;
@@ -210,26 +203,31 @@ string marketTrade::ToString(void) const
     return str.str();
 }
 
-void marketMarket::getNShares(double &nShares0, double &nShares1) const
+void marketNShares(const vector<marketTrade *> &trades, double &nShares0, double &nShares1)
 {
     nShares0 = 0.0;
     nShares1 = 0.0;
-    std::multiset<marketTrade *, marketObjBlockIndexLess>::const_iterator otit;
-    for(otit=orderedTrades.begin(); otit != orderedTrades.end(); otit++) {
-        const marketTrade *trade = *otit;
+    for(uint32_t i=0; i < trades.size(); i++) {
+        const marketTrade *trade = trades[i];
         if (trade->decisionState == 0)
-           nShares0 += (trade->isBuy)? trade->nShares: -trade->nShares;
+            nShares0 += (trade->isBuy)? trade->nShares: -trade->nShares;
         else
-           nShares1 += (trade->isBuy)? trade->nShares: -trade->nShares;
+            nShares1 += (trade->isBuy)? trade->nShares: -trade->nShares;
     }
     nShares0 *= 1e-8;
     nShares1 *= 1e-8;
 }
 
-double marketMarket::getAccount(double nShares0, double nShares1) const
+double marketAccountValue(double B, double nShares0, double nShares1)
 {
-    double b = 1e-8 * B;
-    return b * (FDLIBM_log(FDLIBM_exp(nShares0/b) + FDLIBM_exp(nShares1/b)));
+    if ((nShares0 == 0.0) && (nShares1 == 0.0))
+        return B * FDLIBM_log(2.0);
+    return B * (FDLIBM_log(FDLIBM_exp(nShares0/B) + FDLIBM_exp(nShares1/B)));
+}
+
+double marketAccountValue(double B, uint32_t nstates)
+{
+    return B * FDLIBM_log((double)nstates);
 }
 
 string marketOutcome::ToString(void) const
