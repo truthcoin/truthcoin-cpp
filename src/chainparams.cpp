@@ -145,7 +145,7 @@ if (SHORT_TAU_TESTING) {
         genesis.hashMerkleRoot = genesis.BuildMerkleTree();
         genesis.nVersion = 0x00000001;
 if (SHORT_TAU_TESTING) {
-        genesis.nTime    = 0x5572fec8;
+        genesis.nTime    = 0x5572fec9;
         genesis.nBits    = 0x1d00ffff;
         genesis.nNonce   = 0x01451609;
 } else {
@@ -158,10 +158,11 @@ if (SHORT_TAU_TESTING) {
         hashGenesisBlock = genesis.GetHash();
 
         vSeeds.push_back(CDNSSeedData("198.204.244.178", "198.204.244.178"));
+        vSeeds.push_back(CDNSSeedData("69.117.250.141", "69.117.250.141"));
 
 if (SHORT_TAU_TESTING) {
         assert(genesis.hashMerkleRoot == uint256S("0x3c42bda8bd5190a60dccf4aea350f48527ca36510a6c3f704e82d4bf9c880e9a"));
-        assert(hashGenesisBlock == uint256S("0xb9e71bc88833e9dd1b8c009298ac11b846269787dc4da846e7735163a949bcea"));
+        assert(hashGenesisBlock == uint256S("0xa7d7c010b26140a74dfe3ba963cc5f8601d407f7b0f9763691b3695b900a9508"));
 } else {
         assert(genesis.hashMerkleRoot == uint256S("0x22070acaf5bd2762a487ffc4ec34289c4a52add700561abd96fdabd446b1730c"));
         assert(hashGenesisBlock == uint256S("0x000000006249a3761ba3be5307773df2d7a1c3214a381c96876e098997110fc1"));

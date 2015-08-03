@@ -2665,7 +2665,7 @@ Value createmarket(const Array& params, bool fHelp)
     obj.tags = params[7].get_str();
     obj.maturation = (uint32_t)params[8].get_int();
     obj.txPoW = (uint32_t)params[9].get_int();
-    double capitalrequired = marketMarket_capitalrequired(obj.B/1e8, nstates);
+    double capitalrequired = marketAccountValue(1e-8*obj.B, nstates);
     obj.account = rounduint64(capitalrequired * COIN);
 
     // double-check object is not a duplicate
@@ -2782,24 +2782,26 @@ Value createtrade(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    // current shares of the market for each decision id
+    /* trades of the market */
+    vector<marketTrade *> trades = pmarkettree->GetTrades(market->GetHash());
+
+    /* current shares of the market */
     double nShares0 = 0.0;
     double nShares1 = 0.0;
-    market->getNShares(nShares0, nShares1);
-    double currAccount = market->getAccount(nShares0, nShares1);
+    marketNShares(trades, nShares0, nShares1);
+    double currAccount = marketAccountValue(1e-8*market->B, nShares0, nShares1);
     double nShares = 1e-8 * obj.nShares;
 
-    // new shares to be added to the market
+    /* new shares to be added to the market */
     double dnShares0 = 0.0;
     double dnShares1 = 0.0;
     if (obj.decisionState == 0)
         dnShares0 = (obj.isBuy)? nShares: -nShares;
     else
         dnShares1 = (obj.isBuy)? nShares: -nShares;
-    double nextAccount = market->getAccount(nShares0 + dnShares0,
-        nShares1 + dnShares1);
+    double nextAccount = marketAccountValue(1e-8*market->B, nShares0 + dnShares0, nShares1 + dnShares1);
 
-    // the price difference to move from the current to the new
+    /* the price difference to move from the current to the new */
     double price = (nextAccount - currAccount) / nShares;
     if (!obj.isBuy) price = -price;
     double totalCost = price * nShares;
@@ -2813,7 +2815,7 @@ Value createtrade(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    // ensure unlocked wallet
+    /* ensure unlocked wallet */
     string strError;
     if (pwalletMain->IsLocked()) {
         delete market;
@@ -2822,13 +2824,13 @@ Value createtrade(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
 
-    // create output script
+    /* create output script */
     CScript scriptPubKey = obj.GetScript();
 
-    // key to send the change to
+    /* key to send the change to */
     CReserveKey reservekey(pwalletMain);
 
-    // fee to create market
+    /* fee to create market */
     CAmount nFeeRequired;
     CAmount nAmount = (int64_t) (rounduint64(0.01*COIN) + rounduint64(totalCost*COIN));
 
@@ -2849,6 +2851,7 @@ Value createtrade(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR,
             "Error: The createtrade transaction was rejected!");
 
+    /* retrun value */
     Object entry;
     entry.push_back(Pair("txid", wtx.GetHash().ToString()));
     entry.push_back(Pair("tradeid", objid.ToString()));
@@ -2858,7 +2861,10 @@ Value createtrade(const Array& params, bool fHelp)
     entry.push_back(Pair("price", price));
     entry.push_back(Pair("total", nShares*price));
 
+    /* clean up */
     delete market;
+    for(uint32_t i=0; i < trades.size(); i++)
+        delete trades[i];
 
     return entry;
 }
@@ -2919,6 +2925,7 @@ Value createvote(const Array& params, bool fHelp)
         obj.decisionVotes.push_back(rounduint64(atof(vote.c_str())* COIN));
     }
 
+#if 0
     std::map<uint32_t, marketBallot *>::const_iterator bait
         = branch->ballots.find(obj.height);
     marketBallot *ballot = NULL;
@@ -2941,12 +2948,13 @@ Value createvote(const Array& params, bool fHelp)
             + objid.ToString() + " already exists!"; 
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
+#endif
 
     // ensure unlocked wallet
     string strError;
     if (pwalletMain->IsLocked()) {
         strError = "Error: Wallet locked, unable to create transaction!";
-        LogPrintf("createtrade() : %s", strError);
+        LogPrintf("createvote() : %s", strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
 
@@ -2970,16 +2978,18 @@ Value createvote(const Array& params, bool fHelp)
             strError = strprintf(
                 "Error: This transaction requires a transaction fee of at least %s!",
                 FormatMoney(nFeeRequired));
-        LogPrintf("createtrade() : %s\n", strError);
+        LogPrintf("createvote() : %s\n", strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
     if (!pwalletMain->CommitTransaction(wtx, reservekey))
         throw JSONRPCError(RPC_WALLET_ERROR,
-            "Error: The createtrade transaction was rejected!");
+            "Error: The createvote transaction was rejected!");
 
     Object entry;
     entry.push_back(Pair("txid", wtx.GetHash().ToString()));
+#if 0
     entry.push_back(Pair("voteid", objid.ToString()));
+#endif
     return entry;
 };
 
@@ -3023,25 +3033,7 @@ Value getbranch(const Array &params, bool fHelp)
     entry.push_back(Pair("unsealtime", (int)obj->unsealTime));
     entry.push_back(Pair("consensusthreshold", ValueFromAmount(obj->consensusThreshold)));
 
-    Array array;
-    for(uint32_t i=0; i < obj->tx.vout.size(); i++) {
-        const CTxOut &vout = obj->tx.vout[i];
-        if (vout.nValue == 0)
-            continue;
-        CTxDestination dest;
-        if (!ExtractDestination(vout.scriptPubKey, dest))
-            continue;
-        CTruthcoinAddress addr;
-        addr.is_votecoin = 1;
-        if (!addr.Set(dest))
-            continue;
-        Object item;
-        item.push_back(Pair("addr", addr.ToString()));
-        item.push_back(Pair("amount", ValueFromAmount(vout.nValue)));
-        array.push_back(item);
-    }
-    entry.push_back(Pair("votecoins", array));
-
+    /* clean up */
     delete obj;
 
     return entry;
@@ -3113,12 +3105,18 @@ Value getmarket(const Array &params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    // current shares of the market for each decision id
+    /* trades of the market */
+    vector<marketTrade *> trades = pmarkettree->GetTrades(obj->GetHash());
+
+    /* current shares of the market */
     double nShares0 = 0.0;
     double nShares1 = 0.0;
-    obj->getNShares(nShares0, nShares1);
-    double currAccount = obj->getAccount(nShares0, nShares1);
+    marketNShares(trades, nShares0, nShares1);
 
+    /* current account value */
+    double currAccount = marketAccountValue(1e-8*obj->B, nShares0, nShares1);
+
+    /* return value */
     Object entry;
     entry.push_back(Pair("marketid", id.ToString()));
     entry.push_back(Pair("txid", obj->txid.ToString()));
@@ -3146,7 +3144,10 @@ Value getmarket(const Array &params, bool fHelp)
     entry.push_back(Pair("nShares1", nShares1));
     entry.push_back(Pair("currAccount", currAccount));
 
+    /* clean up */
     delete obj; 
+    for(uint32_t i=0; i < trades.size(); i++)
+        delete trades[i];
 
     return entry;
 }
@@ -3433,7 +3434,7 @@ Value getcreatemarketcapitalrequired(const Array& params, bool fHelp)
 
     double B = uint64FromValue(params[0], false) / 1e8;
     uint32_t number_of_states = (uint32_t)params[1].get_int();
-    double capitalrequired = marketMarket_capitalrequired(B, number_of_states);
+    double capitalrequired = marketAccountValue(B, number_of_states);
 
     Object entry;
     entry.push_back(Pair("B", B));
@@ -3491,26 +3492,34 @@ Value getcreatetradecapitalrequired(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_ERROR, strError.c_str());
     }
 
-    // current shares of the market for each decision id
+    /* trades of the market */
+    vector<marketTrade *> trades = pmarkettree->GetTrades(market->GetHash());
+
+    /* current share totals of the market */
     double nShares0 = 0.0;
     double nShares1 = 0.0;
-    market->getNShares(nShares0, nShares1);
-    double currAccount = market->getAccount(nShares0, nShares1);
+    marketNShares(trades, nShares0, nShares1);
 
-    // new shares to be added to the market
+    /* current account value */
+    double currAccount = marketAccountValue(1e-8*market->B, nShares0, nShares1);
+
+    /* new shares to be added to the market */
     double dnShares0 = 0.0;
     double dnShares1 = 0.0;
     if (decisionState == 0)
         dnShares0 = (isBuy)? nShares: -nShares;
     else
         dnShares1 = (isBuy)? nShares: -nShares;
-    double nextAccount = market->getAccount(nShares0 + dnShares0,
-        nShares1 + dnShares1);
+    double nextAccount = marketAccountValue(1e-8*market->B, nShares0 + dnShares0, nShares1 + dnShares1);
 
-    // the price difference to move from the current to the new
+    /* the price difference to move from the current to the new */
     double price = (nextAccount - currAccount) / nShares;
     if (!isBuy) price = -price;
 
+    /* round up because returing value is shown as a string */
+    price += 1e-8;
+
+    /* return value */
     Object entry;
     entry.push_back(Pair("nShares0", nShares0));
     entry.push_back(Pair("nShares1", nShares1));
@@ -3520,7 +3529,10 @@ Value getcreatetradecapitalrequired(const Array& params, bool fHelp)
     entry.push_back(Pair("price", price));
     entry.push_back(Pair("total", nShares*price));
 
+    /* clean up */
     delete market;
+    for(uint32_t i=0; i < trades.size(); i++)
+        delete trades[i];
 
     return entry;
 }

@@ -63,7 +63,7 @@ static void draw_graph(
     uint32_t nDecisions = vote->nc;
     uint32_t nVoters = vote->nr;
     if (nDecisions) {
-        uint32_t colors[nVoters];
+        uint32_t *colors = new uint32_t [nVoters];
         colors[0] = 0xFF0000;
         colors[1] = 0x00FF00;
         colors[2] = 0x0000FF;
@@ -113,6 +113,7 @@ static void draw_graph(
                 painter.drawRect(rect);
             }
         }
+        delete [] colors;
     }
 }
 

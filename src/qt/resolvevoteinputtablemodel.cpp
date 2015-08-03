@@ -34,7 +34,7 @@ int ResolveVoteInputTableModel::rowCount(const QModelIndex &parent) const
 int ResolveVoteInputTableModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return (voteptr && *voteptr)? (*voteptr)->nc: 0;
+    return 1 + ((voteptr && *voteptr)? (*voteptr)->nc: 0);
 }
 
 QVariant ResolveVoteInputTableModel::data(const QModelIndex &index, int role) const
@@ -50,11 +50,20 @@ QVariant ResolveVoteInputTableModel::data(const QModelIndex &index, int role) co
         uint32_t row = index.row();
         uint32_t col = index.column();
         if ((row < 3+(*voteptr)->nr)
-            && (col < (*voteptr)->nc))
+            && (col < 1+(*voteptr)->nc))
         {
+
             double value = 0.0;
+
+            if (col == 0) { /* Starting Reputations */
+                if (row >= 3)
+                    value = (*voteptr)->rvecs[TC_VOTE_OLD_REP]->a[row-3][0];
+                else
+                    return QVariant();
+            }
+            else
             if (row == 0) /* Binary/Scalar */
-                value = (*voteptr)->cvecs[TC_VOTE_IS_BINARY]->a[0][col];
+                value = (*voteptr)->cvecs[TC_VOTE_IS_BINARY]->a[0][col-1];
             else
             if (row == 1) /* Minimum */
                 value = 0.0;
@@ -62,7 +71,7 @@ QVariant ResolveVoteInputTableModel::data(const QModelIndex &index, int role) co
             if (row == 2) /* Maximum */
                 value = 1.0;
             else
-                value = (*voteptr)->M->a[row-3][col];
+                value = (*voteptr)->M->a[row-3][col-1];
 
             if (value != (*voteptr)->NA) {
                 char tmp[32];
@@ -86,7 +95,10 @@ QVariant ResolveVoteInputTableModel::headerData(int section, Qt::Orientation ori
         if(role == Qt::DisplayRole)
         {
             char tmp[32];
-            snprintf(tmp, sizeof(tmp), "Decision %u", section+1);
+            if (section == 0)
+                snprintf(tmp, sizeof(tmp), "Old Rep");
+            else
+                snprintf(tmp, sizeof(tmp), "Decision %u", section+1);
             return QVariant(QString(tmp));
         }
         else
@@ -156,20 +168,23 @@ bool ResolveVoteInputTableModel::setData(const QModelIndex &index, const QVarian
     int row = index.row();
     int col = index.column();
     if ((row < 3+(int)(*voteptr)->nr)
-        && (col < (int)(*voteptr)->nc))
+        && (col < 1 + (int)(*voteptr)->nc))
     {
-        if (row == 0) {
-           (*voteptr)->cvecs[TC_VOTE_IS_BINARY]->a[0][col] = (dvalue > 0.5)? 1.0: 0.0;
+        if (col == 0) {
+           if (row >= 3)
+              (*voteptr)->rvecs[TC_VOTE_OLD_REP]->a[row-3][0] = dvalue;
         }
         else
-        if (row == 1) {
-        }
+        if (row == 0)
+           (*voteptr)->cvecs[TC_VOTE_IS_BINARY]->a[0][col-1] = (dvalue > 0.5)? 1.0: 0.0;
         else
-        if (row == 2) {
-        }
-        else {
-           (*voteptr)->M->a[row-3][col] = (isNA)? (*voteptr)->NA:  dvalue;
-        }
+        if (row == 1)
+            ;
+        else
+        if (row == 2)
+            ;
+        else
+           (*voteptr)->M->a[row-3][col-1] = (isNA)? (*voteptr)->NA:  dvalue;
 
         emit dataChanged(index, index);
 

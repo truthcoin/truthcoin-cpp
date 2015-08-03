@@ -28,6 +28,7 @@ extern "C" {
 #include <QLabel>
 #include <QLineEdit>
 #include <QScrollArea>
+#include <QSplitter>
 #include <QString>
 #include <QTableView>
 #include <QTabWidget>
@@ -73,22 +74,35 @@ ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     setMinimumSize(800, 200);
 
     /* vlayout:                */
+    /*   Qsplitter:            */
     /*     [Input  groupbox]   */
     /*     [Output groupbox]   */
     QVBoxLayout *vlayout = new QVBoxLayout(this);
     vlayout->setContentsMargins(0,0,0,0);
+    QSplitter *splitter = new QSplitter(Qt::Vertical);
+    QWidget *inputWidget = new QWidget();
+    splitter->addWidget(inputWidget);
+    QWidget *outputWidget = new QWidget();
+    splitter->addWidget(outputWidget);
+    vlayout->addWidget(splitter);
 
+    /* inputWidget             */
+    QVBoxLayout *vilayout = new QVBoxLayout(inputWidget);
+    vilayout->setContentsMargins(0,0,0,0);
     QGroupBox *groupbox1 = new QGroupBox(tr("Input"));
-    QVBoxLayout *v1layout = new QVBoxLayout();
-    groupbox1->setLayout(v1layout);
-    vlayout->addWidget(groupbox1);
+    QVBoxLayout *vi1layout = new QVBoxLayout();
+    groupbox1->setLayout(vi1layout);
+    vilayout->addWidget(groupbox1);
 
+    /* outputWidget            */
+    QVBoxLayout *volayout = new QVBoxLayout(outputWidget);
+    volayout->setContentsMargins(0,0,0,0);
     QGroupBox *groupbox2 = new QGroupBox(tr("Output"));
-    QVBoxLayout *v2layout = new QVBoxLayout();
-    groupbox2->setLayout(v2layout);
-    vlayout->addWidget(groupbox2);
+    QVBoxLayout *vo1layout = new QVBoxLayout();
+    groupbox2->setLayout(vo1layout);
+    volayout->addWidget(groupbox2);
 
-    /* v1layout (input)        */
+    /* vi1layout (input)       */
 
     /* input params */
     /*   # Voters    [   ]    # Decisions [   ]                  */
@@ -103,7 +117,7 @@ ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     g1layout->setColumnStretch(5, 1); /* space */
     g1layout->setColumnStretch(6, 1);
     g1layout->setColumnStretch(7, 2);
-    v1layout->addLayout(g1layout);
+    vi1layout->addLayout(g1layout);
 
     snprintf(tmp, sizeof(tmp), "%u", vote->nr);
     nVotersLabel = new QLabel(tr("# Voters: "));
@@ -155,30 +169,29 @@ ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     inputTableView->installEventFilter(this);
     inputTableView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     inputTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    v1layout->addWidget(inputTableView);
+    vi1layout->addWidget(inputTableView);
 
-    /* v2layout (output)       */
+    /* vo1layout (output)      */
 
     QTabWidget *tabs = new QTabWidget();
     QWidget *dataTab = new QWidget();
     tabs->addTab(dataTab, tr("Data"));
     QWidget *graphTab = new QWidget();
     tabs->addTab(graphTab, tr("Plot"));
-    v2layout->addWidget(tabs);
+    vo1layout->addWidget(tabs);
 
     /* graph tab */
     v4layout = new QVBoxLayout(graphTab);
     resolveVoteGraph = new ResolveVoteGraph();
     resolveVoteGraph->setVotePtr((const struct tc_vote **)&vote);
     scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     scrollArea->setWidget(resolveVoteGraph);
     v4layout->addWidget(scrollArea);
-    QVBoxLayout *v5layout = new QVBoxLayout(scrollArea);
-    v5layout->addWidget(resolveVoteGraph);
 
     /* data tab */
-    QVBoxLayout *v3layout = new QVBoxLayout(dataTab);
+    QVBoxLayout *vdlayout = new QVBoxLayout(dataTab);
 
     /* output params */
     QGridLayout *g2layout = new QGridLayout();
@@ -186,7 +199,7 @@ ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     g2layout->setColumnStretch(0, 1);
     g2layout->setColumnStretch(1, 1);
     g2layout->setColumnStretch(2, 9);
-    v3layout->addLayout(g2layout);
+    vdlayout->addLayout(g2layout);
     voteProcRCLabel[0] = new QLabel(tr("rc: "));
     g2layout->addWidget(voteProcRCLabel[0], /* row */0, /* col */0);
     snprintf(tmp, sizeof(tmp), "%d", rc);
@@ -198,14 +211,14 @@ ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     colTableView->installEventFilter(this);
     colTableView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     colTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    v3layout->addWidget(colTableView);
+    vdlayout->addWidget(colTableView);
 
     /* row table */
     rowTableView = new QTableView();
     rowTableView->installEventFilter(this);
     rowTableView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     rowTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    v3layout->addWidget(rowTableView);
+    vdlayout->addWidget(rowTableView);
 }
 
 ResolveVoteDialog::~ResolveVoteDialog()
@@ -332,14 +345,20 @@ bool ResolveVoteDialog::eventFilter(QObject *obj, QEvent *event)
                     for(int i=0; i < lines.size(); i++) {
                         QStringList fields = lines[i].split("\t");
                         for(int j=0; j < fields.size(); j++) {
-                            if (col + j >= (int)vote->nc)
+                            if (col + 1 + j >= (int)vote->nc)
                                 break;
 
                             std::string field = fields[j].toStdString();
                             bool isNA = (strstr(field.c_str(), "NA"))? true: false;
                             double dvalue = atof(field.c_str());
+
+                            if (col + j == 0) { /* Old Rep */
+                                if ((row+i >= 3) && (row+i-3 < (int)vote->nr))
+                                    vote->rvecs[TC_VOTE_OLD_REP]->a[row+i-3][0] = dvalue;
+                            } 
+                            else
                             if (row + i == 0) /* Binary/Scalar */
-                                vote->cvecs[TC_VOTE_IS_BINARY]->a[0][col+j]
+                                vote->cvecs[TC_VOTE_IS_BINARY]->a[0][col+j-1]
                                     = (dvalue < 0.5)? 0.0: 1.0;
                             else
                             if (row + i == 1) /* Minimum */
@@ -349,7 +368,7 @@ bool ResolveVoteDialog::eventFilter(QObject *obj, QEvent *event)
                                ; 
                             else
                             if (row + i < 3 + (int)vote->nr)
-                               vote->M->a[row+i-3][col+j] = (isNA)? vote->NA: dvalue;
+                               vote->M->a[row+i-3][col+j-1] = (isNA)? vote->NA: dvalue;
                         }
                     }
                     inputTableModel->onDataChange();
@@ -450,10 +469,10 @@ void ResolveVoteDialog::onNDecisionsChange()
         /* replace this->vote with vote */
         struct tc_vote *oldvote = this->vote;
         if (nDecisions > oldvote->nc) {
-            inputTableModel->callBeginInsertColumns(QModelIndex(), oldvote->nc, nDecisions-1);
+            inputTableModel->callBeginInsertColumns(QModelIndex(), oldvote->nc+1, nDecisions);
             colTableModel->callBeginInsertColumns(QModelIndex(), oldvote->nc, nDecisions-1);
         } else {
-            inputTableModel->callBeginRemoveColumns(QModelIndex(), nDecisions, oldvote->nc-1);
+            inputTableModel->callBeginRemoveColumns(QModelIndex(), nDecisions+1, oldvote->nc);
             colTableModel->callBeginRemoveColumns(QModelIndex(), nDecisions, oldvote->nc-1);
         }
         this->vote = vote;
@@ -541,10 +560,9 @@ void ResolveVoteDialog::onInputChange(void)
     resolveVoteGraph->setVotePtr((const struct tc_vote **)&vote);
     resolveVoteGraph->setMinimumHeight(2*20 + 50*vote->nc);
     scrollArea = new QScrollArea();
+    scrollArea->setWidgetResizable(true);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     scrollArea->setWidget(resolveVoteGraph);
     v4layout->addWidget(scrollArea);
-    QVBoxLayout *v5layout = new QVBoxLayout(scrollArea);
-    v5layout->addWidget(resolveVoteGraph);
 }
 
