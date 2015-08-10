@@ -119,9 +119,9 @@ bool SHORT_TAU_TESTING = true;
         genesisBranch.maxDecisions = 30;
         genesisBranch.minTradingFee = COIN / 100;
 if (SHORT_TAU_TESTING) {
-        genesisBranch.tau = 5;
-        genesisBranch.ballotTime = 1;
-        genesisBranch.unsealTime = 1;
+        genesisBranch.tau = 10;
+        genesisBranch.ballotTime = 3;
+        genesisBranch.unsealTime = 3;
 } else {
         genesisBranch.tau = (14 * 24 * 60) / 10; /* 14 days */
         genesisBranch.ballotTime = (genesisBranch.tau - 16)/2;
@@ -133,11 +133,11 @@ if (SHORT_TAU_TESTING) {
         txNew.vout[0].scriptPubKey = genesisBranch.GetScript();
 
         /* vout[1..3]: the branch's votecoins */
-        txNew.vout[1].nValue = COIN;
+        txNew.vout[1].nValue = 33333333;
         txNew.vout[1].scriptPubKey = CScript() << ParseHex("048c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa40a30463a3305193378fedf31f7cc0eb7ae784f0451cb9459e71dc73cbef9482") << OP_CHECKSIG;
-        txNew.vout[2].nValue = COIN;
+        txNew.vout[2].nValue = 33333333;
         txNew.vout[2].scriptPubKey = CScript() << ParseHex("04ab1ac1872a38a2f196bed5a6047f0da2c8130fe8de49fc4d5dfb201f7611d8e213f4a37a324d17a1e9aa5f39db6a42b6f7ef93d33e1e545f01a581f3c429d15b") << OP_CHECKSIG;
-        txNew.vout[3].nValue = COIN;
+        txNew.vout[3].nValue = 33333333;
         txNew.vout[3].scriptPubKey = CScript() << ParseHex("049729247032c0dfcf45b4841fcd72f6e9a2422631fc3466cf863e87154754dd4091d1a244265fea1dcd15c75dcbd4df3690dae85255acaf49384b492f2aa36143") << OP_CHECKSIG;
 
         genesis.vtx.push_back(txNew);
@@ -161,8 +161,8 @@ if (SHORT_TAU_TESTING) {
         vSeeds.push_back(CDNSSeedData("69.117.250.141", "69.117.250.141"));
 
 if (SHORT_TAU_TESTING) {
-        assert(genesis.hashMerkleRoot == uint256S("0x3c42bda8bd5190a60dccf4aea350f48527ca36510a6c3f704e82d4bf9c880e9a"));
-        assert(hashGenesisBlock == uint256S("0xa7d7c010b26140a74dfe3ba963cc5f8601d407f7b0f9763691b3695b900a9508"));
+        assert(genesis.hashMerkleRoot == uint256S("0x7a9af9175e504b2ad58cbab875c3889b3e4601621c7cc9a766769c7eb8f85d8a"));
+        assert(hashGenesisBlock == uint256S("0xfb9e7b87be1a69ece3fd328b1aad7d4051572bb591885c562b54c97075a395a4"));
 } else {
         assert(genesis.hashMerkleRoot == uint256S("0x22070acaf5bd2762a487ffc4ec34289c4a52add700561abd96fdabd446b1730c"));
         assert(hashGenesisBlock == uint256S("0x000000006249a3761ba3be5307773df2d7a1c3214a381c96876e098997110fc1"));

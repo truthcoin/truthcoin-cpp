@@ -342,7 +342,7 @@ int marketOutcome::calc(void)
     double **m = vote->M->a;
     for(uint32_t i=0; i < nVoters; i++) 
         for(uint32_t j=0; j < nDecisions; j++) 
-            m[i][j] = voteMatrix[i*nVoters + j] * 1e-8;
+            m[i][j] = voteMatrix[i*nDecisions + j] * 1e-8;
 
     int rc = tc_vote_proc(vote);
     if (rc < 0) {

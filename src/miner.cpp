@@ -57,8 +57,8 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
     outcome->NA = 2016; /* if conflicts, to be changed (TODO) */
     outcome->alpha = 0.10; /* should be a branch parameter  */
     outcome->tol = 0.10; /* should be a branch parameter  */
-    std::map<uint256, marketDecision *>::const_iterator dit;
 
+    /* populate the decisions */
     vector<marketDecision *> decisions = pmarkettree->GetDecisions(branch->GetHash());
     for(size_t i=0; i < decisions.size(); i++) {
         const marketDecision *decision = decisions[i];
@@ -66,14 +66,17 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
             + branch->unsealTime;
         if (!((height - branch->tau <= blocknum) && (blocknum < height)))
             continue;
+        outcome->nDecisions++;
         outcome->decisionIDs.push_back(decision->GetHash());
         outcome->isScaled.push_back(decision->isScaled);
     }
+    if (outcome->nDecisions)
+        return CTransaction();
+
+    /* populate the voters and their votes */
     outcome->voteMatrix.clear();
     outcome->voteMatrix.resize(votes.size()*outcome->nDecisions, outcome->NA);
-
     vector<marketOutcome *> outcomes = pmarkettree->GetOutcomes(branch->GetHash());
-
     CTransaction tx;
     if (outcomes.size()) {
         /* get the votecoins from the last outcome */
@@ -81,7 +84,7 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
         for(size_t i=0; i < outcomes.size(); i++)
             if ((!poutcome) || (outcomes[i]->nHeight > poutcome->nHeight))
                 poutcome = outcomes[i];
-        tx = poutcome->tx;
+        /* tx = poutcome->tx; */
     }
     else {
         /* get the votecoins from the genesis block */
@@ -129,6 +132,8 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
         }
         outcome->nVoters++;
     }
+    if (outcome->nVoters)
+        return CTransaction();
 
     /* calculate the result */
     int rc = outcome->calc();
@@ -144,7 +149,7 @@ CTransaction getOutcomeTx(marketBranch *branch, uint32_t height)
         mtx.vin.push_back(CTxIn(COutPoint(tx.GetHash(),i)));
         mtx.vout.push_back(CTxOut(outcome->smoothedRep[i], script));
     }
-    outcome->tx = mtx;
+    /* outcome->tx = mtx; */
 
     /* clean up */
     for(size_t i=0; i < vec.size(); i++)

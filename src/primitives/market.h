@@ -253,7 +253,6 @@ struct marketOutcome : public marketObj {
         READWRITE(NA);
         READWRITE(alpha);
         READWRITE(tol);
-        READWRITE(tx);
     }
     string ToString(void) const;
     int calc(void);
