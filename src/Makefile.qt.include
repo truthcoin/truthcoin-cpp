@@ -111,7 +111,19 @@ QT_MOC_CPP = \
   qt/moc_macdockiconhandler.cpp \
   qt/moc_macnotificationhandler.cpp \
   qt/moc_ballotview.cpp \
-  qt/moc_decisionsview.cpp \
+  qt/moc_ballotballotwindow.cpp \
+  qt/moc_ballotballotfilterproxymodel.cpp \
+  qt/moc_ballotballottablemodel.cpp \
+  qt/moc_ballotbranchwindow.cpp \
+  qt/moc_ballotoutcomewindow.cpp \
+  qt/moc_ballotoutcomefilterproxymodel.cpp \
+  qt/moc_ballotoutcometablemodel.cpp \
+  qt/moc_ballotsealedvotefilterproxymodel.cpp \
+  qt/moc_ballotsealedvotewindow.cpp \
+  qt/moc_ballotsealedvotetablemodel.cpp \
+  qt/moc_ballotvotefilterproxymodel.cpp \
+  qt/moc_ballotvotewindow.cpp \
+  qt/moc_ballotvotetablemodel.cpp \
   qt/moc_marketbranchfilterproxymodel.cpp \
   qt/moc_marketbranchtablemodel.cpp \
   qt/moc_marketbranchwindow.cpp \
@@ -198,7 +210,19 @@ TRUTHCOIN_QT_H = \
   qt/macdockiconhandler.h \
   qt/macnotificationhandler.h \
   qt/ballotview.h \
-  qt/decisionsview.h \
+  qt/ballotballotfilterproxymodel.h \
+  qt/ballotballottablemodel.h \
+  qt/ballotballotwindow.h \
+  qt/ballotbranchwindow.h \
+  qt/ballotoutcomefilterproxymodel.h \
+  qt/ballotoutcometablemodel.h \
+  qt/ballotoutcomewindow.h \
+  qt/ballotsealedvotefilterproxymodel.h \
+  qt/ballotsealedvotetablemodel.h \
+  qt/ballotsealedvotewindow.h \
+  qt/ballotvotefilterproxymodel.h \
+  qt/ballotvotetablemodel.h \
+  qt/ballotvotewindow.h \
   qt/marketbranchfilterproxymodel.h \
   qt/marketbranchtablemodel.h \
   qt/marketbranchwindow.h \
@@ -339,7 +363,19 @@ TRUTHCOIN_QT_CPP += \
   qt/coincontroltreewidget.cpp \
   qt/editaddressdialog.cpp \
   qt/ballotview.cpp \
-  qt/decisionsview.cpp \
+  qt/ballotballotfilterproxymodel.cpp \
+  qt/ballotballottablemodel.cpp \
+  qt/ballotballotwindow.cpp \
+  qt/ballotbranchwindow.cpp \
+  qt/ballotoutcomefilterproxymodel.cpp \
+  qt/ballotoutcometablemodel.cpp \
+  qt/ballotoutcomewindow.cpp \
+  qt/ballotsealedvotefilterproxymodel.cpp \
+  qt/ballotsealedvotetablemodel.cpp \
+  qt/ballotsealedvotewindow.cpp \
+  qt/ballotvotefilterproxymodel.cpp \
+  qt/ballotvotetablemodel.cpp \
+  qt/ballotvotewindow.cpp \
   qt/marketbranchfilterproxymodel.cpp \
   qt/marketbranchtablemodel.cpp \
   qt/marketbranchwindow.cpp \

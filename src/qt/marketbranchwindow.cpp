@@ -2,12 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "marketbranchfilterproxymodel.h"
-#include "marketbranchtablemodel.h"
-#include "marketbranchwindow.h"
-#include "marketview.h"
-#include "walletmodel.h"
-
 #include <QApplication>
 #include <QClipboard>
 #include <QGridLayout>
@@ -20,6 +14,12 @@
 #include <QScrollBar>
 #include <QTableView>
 #include <QVBoxLayout>
+
+#include "marketbranchfilterproxymodel.h"
+#include "marketbranchtablemodel.h"
+#include "marketbranchwindow.h"
+#include "marketview.h"
+#include "walletmodel.h"
 
 
 MarketBranchWindow::MarketBranchWindow(QWidget *parent)
@@ -64,14 +64,12 @@ void MarketBranchWindow::setModel(WalletModel *model)
         return;
 
     tableModel = model->getMarketBranchTableModel();
-
     if (!tableModel)
         return;
 
     proxyModel = new MarketBranchFilterProxyModel(this);
     proxyModel->setSourceModel(tableModel);
 
-    // tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     tableView->setModel(proxyModel);
     tableView->setAlternatingRowColors(true);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -116,7 +114,7 @@ void MarketBranchWindow::setTableViewFocus(void)
 
 void MarketBranchWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
 {
-    if (!tableModel || !marketView || !proxyModel)
+    if (!tableModel || !marketView || !proxyModel || !curr.isValid())
         return;
 
     int row = proxyModel->mapToSource(curr).row();

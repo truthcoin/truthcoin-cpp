@@ -90,7 +90,6 @@ private:
     QAction *overviewAction;
     QAction *historyAction;
     QAction *ballotAction;
-    QAction *decisionsAction;
     QAction *marketAction;
     QAction *quitAction;
     QAction *sendCoinsAction;
@@ -181,8 +180,6 @@ private slots:
     void gotoHistoryPage();
     /** Switch to ballot page */
     void gotoBallotPage();
-    /** Switch to decisions page */
-    void gotoDecisionsPage();
     /** Switch to market page */
     void gotoMarketPage();
     /** Switch to receive coins page */

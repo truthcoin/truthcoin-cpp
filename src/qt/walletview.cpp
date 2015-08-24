@@ -11,7 +11,6 @@
 #include "clientmodel.h"
 #include "guiutil.h"
 #include "ballotview.h"
-#include "decisionsview.h"
 #include "marketview.h"
 #include "optionsmodel.h"
 #include "overviewpage.h"
@@ -66,15 +65,6 @@ WalletView::WalletView(QWidget *parent):
     bvbox->addLayout(bhbox_buttons);
     ballotPage->setLayout(bvbox);
 
-    decisionsPage = new QWidget(this);
-    QVBoxLayout *dvbox = new QVBoxLayout();
-    QHBoxLayout *dhbox_buttons = new QHBoxLayout();
-    decisionsView = new DecisionsView(this);
-    dvbox->addWidget(decisionsView);
-    dhbox_buttons->addStretch();
-    dvbox->addLayout(dhbox_buttons);
-    decisionsPage->setLayout(dvbox);
-
     marketPage = new QWidget(this);
     QVBoxLayout *mvbox = new QVBoxLayout();
     QHBoxLayout *mhbox_buttons = new QHBoxLayout();
@@ -90,7 +80,6 @@ WalletView::WalletView(QWidget *parent):
     addWidget(overviewPage);
     addWidget(transactionsPage);
     addWidget(marketPage);
-    addWidget(decisionsPage);
     addWidget(ballotPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
@@ -146,7 +135,6 @@ void WalletView::setWalletModel(WalletModel *walletModel)
 
     // Put transaction list in tabs
     ballotView->setModel(walletModel);
-    decisionsView->setModel(walletModel);
     marketView->setModel(walletModel);
     transactionView->setModel(walletModel);
     overviewPage->setWalletModel(walletModel);
@@ -205,11 +193,6 @@ void WalletView::gotoHistoryPage()
 void WalletView::gotoBallotPage()
 {
     setCurrentWidget(ballotPage);
-}
-
-void WalletView::gotoDecisionsPage()
-{
-    setCurrentWidget(decisionsPage);
 }
 
 void WalletView::gotoMarketPage()

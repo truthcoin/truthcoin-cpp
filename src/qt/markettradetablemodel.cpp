@@ -2,24 +2,18 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "addresstablemodel.h"
-#include "guiconstants.h"
-#include "guiutil.h"
-#include "markettradetablemodel.h"
-#include "optionsmodel.h"
-#include "primitives/market.h"
-#include "scicon.h"
-#include "walletmodel.h"
+#include <QList>
 
+#include "guiutil.h"
 #include "main.h"
+#include "markettradetablemodel.h"
+#include "primitives/market.h"
 #include "sync.h"
 #include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
-
-#include <QList>
-
+#include "walletmodel.h"
 
 extern CMarketTreeDB *pmarkettree;
 
@@ -35,7 +29,6 @@ static int column_alignments[] = {
         Qt::AlignRight|Qt::AlignVCenter, /* BlockNum */
     };
 
-
 // Private implementation
 class MarketTradeTablePriv
 {
@@ -49,7 +42,7 @@ public:
     CWallet *wallet;
     MarketTradeTableModel *parent;
 
-    /* Local cache of Tradees */
+    /* Local cache of Trades */
     QList<const marketTrade *> cached;
 
     int size()
@@ -122,13 +115,13 @@ QVariant MarketTradeTableModel::data(const QModelIndex &index, int role) const
         case DecisionState:
             return formatDecisionState(trade);
         case NShares:
-            return formatNShares(trade);
+            return QVariant((double)trade->nShares*1e-8);
         case Price:
-            return formatPrice(trade);
+            return QVariant((double)trade->price*1e-8);
         case Nonce:
-            return formatNonce(trade);
+            return QVariant((int)trade->nonce);
         case BlockNumber:
-            return formatBlockNumber(trade);
+            return QVariant((int)trade->nHeight);
         default:
             ;
         }

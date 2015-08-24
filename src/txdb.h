@@ -80,6 +80,7 @@ public:
     marketDecision *GetDecision(const uint256 &);
     marketMarket *GetMarket(const uint256 &);
     marketOutcome *GetOutcome(const uint256 &);
+    marketSealedVote *GetSealedVote(const uint256 &);
     marketTrade *GetTrade(const uint256 &);
     marketVote *GetVote(const uint256 &);
 

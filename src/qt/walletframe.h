@@ -55,8 +55,6 @@ public slots:
     void gotoHistoryPage();
     /** Switch to ballot page */
     void gotoBallotPage();
-    /** Switch to decisions page */
-    void gotoDecisionsPage();
     /** Switch to receive coins page */
     void gotoMarketPage();
     /** Switch to receive coins page */

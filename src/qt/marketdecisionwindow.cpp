@@ -2,12 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "marketdecisionfilterproxymodel.h"
-#include "marketdecisiontablemodel.h"
-#include "marketdecisionwindow.h"
-#include "marketview.h"
-#include "walletmodel.h"
-
 #include <QApplication>
 #include <QClipboard>
 #include <QGridLayout>
@@ -20,6 +14,12 @@
 #include <QScrollBar>
 #include <QTableView>
 #include <QVBoxLayout>
+
+#include "marketdecisionfilterproxymodel.h"
+#include "marketdecisiontablemodel.h"
+#include "marketdecisionwindow.h"
+#include "marketview.h"
+#include "walletmodel.h"
 
 
 MarketDecisionWindow::MarketDecisionWindow(QWidget *parent)
@@ -73,14 +73,12 @@ void MarketDecisionWindow::setModel(WalletModel *model)
         return;
 
     tableModel = model->getMarketDecisionTableModel();
-
     if (!tableModel)
         return;
 
     proxyModel = new MarketDecisionFilterProxyModel(this);
     proxyModel->setSourceModel(tableModel);
 
-    // tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     tableView->setModel(proxyModel);
     tableView->setAlternatingRowColors(true);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -124,28 +122,6 @@ void MarketDecisionWindow::onBranchChange(const marketBranch *branch)
     }
 }
 
-void MarketDecisionWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
-{
-    if (!tableModel || !marketView || !proxyModel)
-        return;
-
-    int row = proxyModel->mapToSource(curr).row();
-    const marketDecision *decision = tableModel->index(row);
-    marketView->onDecisionChange(decision);
-}
-
-void MarketDecisionWindow::filterAddressChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterAddress(str);
-}
-
-void MarketDecisionWindow::filterPromptChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterPrompt(str);
-}
-
 bool MarketDecisionWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == tableView)
@@ -177,5 +153,27 @@ bool MarketDecisionWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
     return QDialog::eventFilter(obj, event);
+}
+
+void MarketDecisionWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
+{
+    if (!tableModel || !marketView || !proxyModel || !curr.isValid())
+        return;
+
+    int row = proxyModel->mapToSource(curr).row();
+    const marketDecision *decision = tableModel->index(row);
+    marketView->onDecisionChange(decision);
+}
+
+void MarketDecisionWindow::filterAddressChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterAddress(str);
+}
+
+void MarketDecisionWindow::filterPromptChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterPrompt(str);
 }
 

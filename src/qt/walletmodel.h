@@ -17,6 +17,10 @@
 #include <QObject>
 
 class AddressTableModel;
+class BallotBallotTableModel;
+class BallotOutcomeTableModel;
+class BallotSealedVoteTableModel;
+class BallotVoteTableModel;
 class MarketBranchTableModel;
 class MarketDecisionTableModel;
 class MarketMarketTableModel;
@@ -131,6 +135,11 @@ public:
 
     OptionsModel *getOptionsModel();
     AddressTableModel *getAddressTableModel();
+    MarketBranchTableModel *getBallotBranchTableModel();
+    BallotBallotTableModel *getBallotBallotTableModel();
+    BallotOutcomeTableModel *getBallotOutcomeTableModel();
+    BallotSealedVoteTableModel *getBallotSealedVoteTableModel();
+    BallotVoteTableModel *getBallotVoteTableModel();
     MarketBranchTableModel *getMarketBranchTableModel();
     MarketDecisionTableModel *getMarketDecisionTableModel();
     MarketMarketTableModel *getMarketMarketTableModel();
@@ -220,6 +229,11 @@ private:
     OptionsModel *optionsModel;
 
     AddressTableModel *addressTableModel;
+    MarketBranchTableModel *ballotBranchTableModel;
+    BallotBallotTableModel *ballotBallotTableModel;
+    BallotOutcomeTableModel *ballotOutcomeTableModel;
+    BallotSealedVoteTableModel *ballotSealedVoteTableModel;
+    BallotVoteTableModel *ballotVoteTableModel;
     MarketBranchTableModel *marketBranchTableModel;
     MarketDecisionTableModel *marketDecisionTableModel;
     MarketMarketTableModel *marketMarketTableModel;

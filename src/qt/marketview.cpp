@@ -2,27 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "marketview.h"
-
-#include "csvmodelwriter.h"
-#include "guiutil.h"
-#include "json/json_spirit_writer_template.h"
-#include "marketbranchwindow.h"
-#include "marketbranchtablemodel.h"
-#include "marketdecisionwindow.h"
-#include "marketdecisiontablemodel.h"
-#include "marketmarketwindow.h"
-#include "marketmarkettablemodel.h"
-#include "markettradewindow.h"
-#include "markettradetablemodel.h"
-#include "marketviewgraph.h"
-#include "optionsmodel.h"
-#include "primitives/market.h"
-#include "scicon.h"
-#include "truthcoinunits.h"
-#include "ui_interface.h"
-#include "walletmodel.h"
-
 #include <QComboBox>
 #include <QDoubleValidator>
 #include <QGroupBox>
@@ -36,6 +15,22 @@
 #include <QSignalMapper>
 #include <QTabWidget>
 #include <QVBoxLayout>
+
+#include "guiutil.h"
+#include "json/json_spirit_writer_template.h"
+#include "marketbranchwindow.h"
+#include "marketbranchtablemodel.h"
+#include "marketdecisionwindow.h"
+#include "marketdecisiontablemodel.h"
+#include "marketmarketwindow.h"
+#include "marketmarkettablemodel.h"
+#include "markettradewindow.h"
+#include "markettradetablemodel.h"
+#include "marketview.h"
+#include "marketviewgraph.h"
+#include "primitives/market.h"
+#include "walletmodel.h"
+
 
 using namespace json_spirit;
 
@@ -52,8 +47,8 @@ MarketView::MarketView(QWidget *parent)
       graphWidget(0)
 {
     /* vlayout:                       */
-    /*    Grid layout                 */
-    /*    Horizontal layout           */
+    /*    Grid Layout                 */
+    /*    Horizontal Layout           */
     QVBoxLayout *vlayout = new QVBoxLayout(this);
     vlayout->setContentsMargins(0,0,0,0);
     vlayout->setSpacing(0);
@@ -62,50 +57,21 @@ MarketView::MarketView(QWidget *parent)
     QHBoxLayout *hlayout = new QHBoxLayout();
     vlayout->addLayout(hlayout);
 
-    decisionBranchLabel = new QLabel("");
-    decisionBranchLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
-
-    marketBranchLabel = new QLabel("");
-    marketBranchLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
-    marketDecisionLabel = new QLabel("");
-    marketDecisionLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
-    marketDecisionFunction = new QComboBox();
-    for(int i=1; ; i++) {
-        std::string str = decisionFunctionIDToString(i);
-        if (!str.size())
-            break;
-        marketDecisionFunction->addItem(QString::fromStdString(str), QVariant(i));
-    }
-    marketDecisionFunction->setCurrentIndex(0);
-    connect(marketDecisionFunction, SIGNAL(currentIndexChanged(int)), this, SLOT(onMarketDecisionFunctionIndexChanged(int)));
-
-
-    tradeBranchLabel = new QLabel("");
-    tradeBranchLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
-    tradeDecisionLabel = new QLabel("");
-    tradeDecisionLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
-    tradeMarketLabel = new QLabel("");
-    tradeMarketLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
-
     /* Grid Layout */ 
 
-    /* Branch labels and button and popup window */
+    /* create widgets */
     branchLabels[0] = new QLabel(tr("Branch: "));
     branchLabels[0]->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     branchLabels[0]->setTextInteractionFlags(Qt::TextSelectableByMouse);
     branchLabels[1] = new QLabel("");
     branchLabels[1]->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     branchLabels[1]->setTextInteractionFlags(Qt::TextSelectableByMouse);
-
-    /* Decision labels and button and popup window */
     decisionLabels[0] = new QLabel(tr("Decision: "));
     decisionLabels[0]->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     decisionLabels[0]->setTextInteractionFlags(Qt::TextSelectableByMouse);
     decisionLabels[1] = new QLabel("");
     decisionLabels[1]->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     decisionLabels[1]->setTextInteractionFlags(Qt::TextSelectableByMouse);
-
-    /* Market labels and button and popup window */
     marketLabels[0] = new QLabel(tr("Market: "));
     marketLabels[0]->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     marketLabels[0]->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -219,7 +185,7 @@ void MarketView::initSelectBranchTab(QWidget *page)
     vlayout->setSpacing(2);
     vlayout->addLayout(glayout, 0);
     vlayout->addWidget(branchButton, 0);
-    vlayout->addWidget(new QWidget(), 10); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 10); /* receives all the stretch */
 }
 
 void MarketView::initSelectDecisionTab(QWidget *page)
@@ -265,7 +231,7 @@ void MarketView::initSelectDecisionTab(QWidget *page)
     vlayout->setSpacing(2);
     vlayout->addLayout(glayout, 0);
     vlayout->addWidget(decisionButton, 0);
-    vlayout->addWidget(new QWidget(), 10); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 10); /* receives all the stretch */
 }
 
 void MarketView::initSelectMarketTab(QWidget *page)
@@ -311,7 +277,7 @@ void MarketView::initSelectMarketTab(QWidget *page)
     vlayout->setSpacing(2);
     vlayout->addLayout(glayout, 0);
     vlayout->addWidget(marketButton, 0);
-    vlayout->addWidget(new QWidget(), 10); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 10); /* receives all the stretch */
 }
 
 void MarketView::initSelectTradeTab(QWidget *page)
@@ -354,7 +320,7 @@ void MarketView::initSelectTradeTab(QWidget *page)
     vlayout->setSpacing(2);
     vlayout->addLayout(glayout, 0);
     vlayout->addWidget(tradeButton, 0);
-    vlayout->addWidget(new QWidget(), 10); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 10); /* receives all the stretch */
 }
 
 void MarketView::showBranchWindow(void)
@@ -505,7 +471,7 @@ void MarketView::initCreateBranchTab(QWidget *page)
     vlayout->setContentsMargins(10,10,10,10);
     vlayout->setSpacing(5);
     vlayout->addLayout(glayout, 0);
-    vlayout->addWidget(new QWidget(), 8); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 8); /* receives all the stretch */
 
     /* update CLI */
     updateCreateBranchCLI();
@@ -514,6 +480,8 @@ void MarketView::initCreateBranchTab(QWidget *page)
 void MarketView::initCreateDecisionTab(QWidget *page)
 {
     /* widgets */
+    decisionBranchLabel = new QLabel("");
+    decisionBranchLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     decisionAddress = new QLineEdit();
     decisionAddress->setText("");
     decisionAddress->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
@@ -617,7 +585,7 @@ void MarketView::initCreateDecisionTab(QWidget *page)
     vlayout->setContentsMargins(10,10,10,10);
     vlayout->setSpacing(5);
     vlayout->addLayout(glayout, 0);
-    vlayout->addWidget(new QWidget(), 8); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 8); /* receives all the stretch */
 
     /* update CLI */
     onDecisionIsBinaryRadioButtonToggled(true);
@@ -626,6 +594,19 @@ void MarketView::initCreateDecisionTab(QWidget *page)
 void MarketView::initCreateMarketTab(QWidget *page)
 {
     /* widgets */
+    marketBranchLabel = new QLabel("");
+    marketBranchLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+    marketDecisionLabel = new QLabel("");
+    marketDecisionLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+    marketDecisionFunction = new QComboBox();
+    for(int i=1; ; i++) {
+        std::string str = decisionFunctionIDToString(i);
+        if (!str.size())
+            break;
+        marketDecisionFunction->addItem(QString::fromStdString(str), QVariant(i));
+    }
+    marketDecisionFunction->setCurrentIndex(0);
+    connect(marketDecisionFunction, SIGNAL(currentIndexChanged(int)), this, SLOT(onMarketDecisionFunctionIndexChanged(int)));
     marketAddress = new QLineEdit();
     marketAddress->setText("");
     marketAddress->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
@@ -742,7 +723,7 @@ void MarketView::initCreateMarketTab(QWidget *page)
     vlayout->setContentsMargins(10,10,10,10);
     vlayout->setSpacing(5);
     vlayout->addLayout(glayout, 0);
-    vlayout->addWidget(new QWidget(), 8); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 8); /* receives all the stretch */
 
     /* update CLI */
     updateCreateMarketCLI();
@@ -751,6 +732,12 @@ void MarketView::initCreateMarketTab(QWidget *page)
 void MarketView::initCreateTradeTab(QWidget *page)
 {
     /* widgets */
+    tradeBranchLabel = new QLabel("");
+    tradeBranchLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+    tradeDecisionLabel = new QLabel("");
+    tradeDecisionLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
+    tradeMarketLabel = new QLabel("");
+    tradeMarketLabel->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
     tradeAddress = new QLineEdit();
     tradeAddress->setText("");
     tradeAddress->setAlignment(Qt::AlignLeft|Qt::AlignVCenter);
@@ -847,7 +834,7 @@ void MarketView::initCreateTradeTab(QWidget *page)
     vlayout->setContentsMargins(10,10,10,10);
     vlayout->setSpacing(5);
     vlayout->addLayout(glayout, 0);
-    vlayout->addWidget(new QWidget(), 8); /* receives all the strectch */
+    vlayout->addWidget(new QWidget(), 8); /* receives all the stretch */
 
     /* update CLI */
     updateCreateTradeCLI();
@@ -1121,7 +1108,6 @@ void MarketView::onTradeChange(const marketTrade *trade)
 void MarketView::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
-    // columnResizingFixer->stretchColumnWidth(MarketTableModel::Hash);
 }
 
 // Need to override default Ctrl+C action for amount as default behaviour is just to copy DisplayRole text

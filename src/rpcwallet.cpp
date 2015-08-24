@@ -2274,6 +2274,7 @@ Value listoutcomes(const Array &params, bool fHelp)
         const marketOutcome *obj = vec[i];
         Object item;
         item.push_back(Pair("outcomeid", obj->GetHash().ToString()));
+        item.push_back(Pair("height", (int)obj->nHeight));
         array.push_back(item);
     }
     entry.push_back(Pair("outcomes", array));

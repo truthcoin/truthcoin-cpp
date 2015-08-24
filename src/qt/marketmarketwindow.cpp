@@ -2,12 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "marketmarketfilterproxymodel.h"
-#include "marketmarkettablemodel.h"
-#include "marketmarketwindow.h"
-#include "marketview.h"
-#include "walletmodel.h"
-
 #include <QApplication>
 #include <QClipboard>
 #include <QGridLayout>
@@ -20,6 +14,12 @@
 #include <QScrollBar>
 #include <QTableView>
 #include <QVBoxLayout>
+
+#include "marketmarketfilterproxymodel.h"
+#include "marketmarkettablemodel.h"
+#include "marketmarketwindow.h"
+#include "marketview.h"
+#include "walletmodel.h"
 
 
 MarketMarketWindow::MarketMarketWindow(QWidget *parent)
@@ -91,7 +91,6 @@ void MarketMarketWindow::setModel(WalletModel *model)
         return;
 
     tableModel = model->getMarketMarketTableModel();
-
     if (!tableModel)
         return;
 
@@ -142,40 +141,6 @@ void MarketMarketWindow::onDecisionChange(const marketBranch *branch, const mark
     }
 }
 
-void MarketMarketWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
-{
-    if (!tableModel || !marketView || !proxyModel)
-        return;
-
-    int row = proxyModel->mapToSource(curr).row();
-    const marketMarket *market = tableModel->index(row);
-    marketView->onMarketChange(market);
-}
-
-void MarketMarketWindow::filterAddressChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterAddress(str);
-}
-
-void MarketMarketWindow::filterTitleChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterTitle(str);
-}
-
-void MarketMarketWindow::filterDescriptionChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterDescription(str);
-}
-
-void MarketMarketWindow::filterTagChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterTag(str);
-}
-
 bool MarketMarketWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == tableView)
@@ -207,5 +172,39 @@ bool MarketMarketWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
     return QDialog::eventFilter(obj, event);
+}
+
+void MarketMarketWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
+{
+    if (!tableModel || !marketView || !proxyModel || !curr.isValid())
+        return;
+
+    int row = proxyModel->mapToSource(curr).row();
+    const marketMarket *market = tableModel->index(row);
+    marketView->onMarketChange(market);
+}
+
+void MarketMarketWindow::filterAddressChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterAddress(str);
+}
+
+void MarketMarketWindow::filterTitleChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterTitle(str);
+}
+
+void MarketMarketWindow::filterDescriptionChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterDescription(str);
+}
+
+void MarketMarketWindow::filterTagChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterTag(str);
 }
 

@@ -4,8 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <vector>
 #include "primitives/transaction.h"
-
 #include "hash.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
@@ -93,6 +93,9 @@ CAmount CTransaction::GetValueOut() const
     CAmount nValueOut = 0;
     for (std::vector<CTxOut>::const_iterator it(vout.begin()); it != vout.end(); ++it)
     {
+        std::vector<unsigned char> hashBytes;
+        if (it->scriptPubKey.IsMarketScript(hashBytes))
+            continue;
         nValueOut += it->nValue;
         if (!MoneyRange(it->nValue) || !MoneyRange(nValueOut))
             throw std::runtime_error("CTransaction::GetValueOut() : value out of range");

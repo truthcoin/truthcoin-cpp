@@ -2,23 +2,19 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "addresstablemodel.h"
-#include "guiconstants.h"
-#include "guiutil.h"
-#include "marketbranchtablemodel.h"
-#include "optionsmodel.h"
-#include "primitives/market.h"
-#include "scicon.h"
-#include "walletmodel.h"
 
+#include <QList>
+
+#include "guiutil.h"
 #include "main.h"
+#include "marketbranchtablemodel.h"
+#include "primitives/market.h"
 #include "sync.h"
 #include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
-
-#include <QList>
+#include "walletmodel.h"
 
 extern CMarketTreeDB *pmarkettree;
 
@@ -127,23 +123,23 @@ QVariant MarketBranchTableModel::data(const QModelIndex &index, int role) const
         case Description:
             return formatDescription(branch);
         case BaseListingFee:
-            return formatBaseListingFee(branch);
+            return QVariant((double)branch->baseListingFee*1e-8);
         case FreeDecisions:
-            return formatFreeDecisions(branch);
+            return QVariant((int)branch->freeDecisions);
         case TargetDecisions:
-            return formatTargetDecisions(branch);
+            return QVariant((int)branch->targetDecisions);
         case MaxDecisions:
-            return formatMaxDecisions(branch);
+            return QVariant((int)branch->maxDecisions);
         case MinTradingFee:
-            return formatMinTradingFee(branch);
+            return QVariant((double)branch->minTradingFee*1e-8);
         case Tau:
-            return formatTau(branch);
+            return QVariant((int)branch->tau);
         case BallotTime:
-            return formatBallotTime(branch);
+            return QVariant((int)branch->ballotTime);
         case UnsealTime:
-            return formatUnsealTime(branch);
+            return QVariant((int)branch->unsealTime);
         case ConsensusThreshold:
-            return formatConsensusThreshold(branch);
+            return QVariant((double)branch->consensusThreshold*1e-8);
         default:
             ;
         }

@@ -76,7 +76,6 @@ TruthcoinGUI::TruthcoinGUI(const NetworkStyle *networkStyle, QWidget *parent) :
     overviewAction(0),
     historyAction(0),
     ballotAction(0),
-    decisionsAction(0),
     marketAction(0),
     quitAction(0),
     sendCoinsAction(0),
@@ -292,13 +291,6 @@ void TruthcoinGUI::createActions(const NetworkStyle *networkStyle)
     marketAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(marketAction);
 
-    decisionsAction = new QAction(SingleColorIcon(":/icons/decisions"), tr("&Decisions"), this);
-    decisionsAction->setStatusTip(tr("Browse decisions"));
-    decisionsAction->setToolTip(decisionsAction->statusTip());
-    decisionsAction->setCheckable(true);
-    decisionsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
-    tabGroup->addAction(decisionsAction);
-
     ballotAction = new QAction(SingleColorIcon(":/icons/ballot"), tr("&Ballot"), this);
     ballotAction->setStatusTip(tr("See votes"));
     ballotAction->setToolTip(ballotAction->statusTip());
@@ -324,8 +316,6 @@ void TruthcoinGUI::createActions(const NetworkStyle *networkStyle)
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
     connect(ballotAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(ballotAction, SIGNAL(triggered()), this, SLOT(gotoBallotPage()));
-    connect(decisionsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
-    connect(decisionsAction, SIGNAL(triggered()), this, SLOT(gotoDecisionsPage()));
     connect(marketAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(marketAction, SIGNAL(triggered()), this, SLOT(gotoMarketPage()));
 #endif // ENABLE_WALLET
@@ -453,7 +443,6 @@ void TruthcoinGUI::createToolBars()
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(historyAction);
         toolbar->addAction(marketAction);
-        toolbar->addAction(decisionsAction);
         toolbar->addAction(ballotAction);
         overviewAction->setChecked(true);
     }
@@ -534,7 +523,6 @@ void TruthcoinGUI::setWalletActionsEnabled(bool enabled)
     receiveCoinsMenuAction->setEnabled(enabled);
     historyAction->setEnabled(enabled);
     ballotAction->setEnabled(enabled);
-    decisionsAction->setEnabled(enabled);
     marketAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
@@ -660,12 +648,6 @@ void TruthcoinGUI::gotoBallotPage()
 {
     ballotAction->setChecked(true);
     if (walletFrame) walletFrame->gotoBallotPage();
-}
-
-void TruthcoinGUI::gotoDecisionsPage()
-{
-    decisionsAction->setChecked(true);
-    if (walletFrame) walletFrame->gotoDecisionsPage();
 }
 
 void TruthcoinGUI::gotoMarketPage()

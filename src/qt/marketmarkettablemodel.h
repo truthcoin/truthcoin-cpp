@@ -15,6 +15,7 @@ class MarketMarketTablePriv;
 class WalletModel;
 class CWallet;
 
+
 class MarketMarketTableModel
     : public QAbstractTableModel
 {

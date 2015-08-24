@@ -2,12 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "markettradefilterproxymodel.h"
-#include "markettradetablemodel.h"
-#include "markettradewindow.h"
-#include "marketview.h"
-#include "walletmodel.h"
-
 #include <QApplication>
 #include <QClipboard>
 #include <QGridLayout>
@@ -20,6 +14,12 @@
 #include <QScrollBar>
 #include <QTableView>
 #include <QVBoxLayout>
+
+#include "markettradefilterproxymodel.h"
+#include "markettradetablemodel.h"
+#include "markettradewindow.h"
+#include "marketview.h"
+#include "walletmodel.h"
 
 
 MarketTradeWindow::MarketTradeWindow(QWidget *parent)
@@ -64,7 +64,6 @@ void MarketTradeWindow::setModel(WalletModel *model)
         return;
 
     tableModel = model->getMarketTradeTableModel();
-
     if (!tableModel)
         return;
 
@@ -113,22 +112,6 @@ void MarketTradeWindow::onMarketChange(const marketBranch *branch, const marketD
     }
 }
 
-void MarketTradeWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
-{
-    if (!tableModel || !marketView || !proxyModel)
-        return;
-
-    int row = proxyModel->mapToSource(curr).row();
-    const marketTrade *trade = tableModel->index(row);
-    marketView->onTradeChange(trade);
-}
-
-void MarketTradeWindow::filterAddressChanged(const QString &str)
-{
-    if (proxyModel)
-        proxyModel->setFilterAddress(str);
-}
-
 bool MarketTradeWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == tableView)
@@ -160,5 +143,21 @@ bool MarketTradeWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
     return QDialog::eventFilter(obj, event);
+}
+
+void MarketTradeWindow::currentRowChanged(const QModelIndex &curr, const QModelIndex &prev)
+{
+    if (!tableModel || !marketView || !proxyModel || !curr.isValid())
+        return;
+
+    int row = proxyModel->mapToSource(curr).row();
+    const marketTrade *trade = tableModel->index(row);
+    marketView->onTradeChange(trade);
+}
+
+void MarketTradeWindow::filterAddressChanged(const QString &str)
+{
+    if (proxyModel)
+        proxyModel->setFilterAddress(str);
 }
 

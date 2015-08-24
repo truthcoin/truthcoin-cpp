@@ -257,6 +257,14 @@ bool CScript::IsMarketScript(vector<unsigned char> &hashBytes) const
        ret = true;
     }
     else
+    if (obj->marketop == 'O') {
+       ret = true;
+    }
+    else
+    if (obj->marketop == 'S') {
+       ret = true;
+    }
+    else
     if (obj->marketop == 'T') {
        marketTrade *ptr = (marketTrade *) obj; 
        hashBytes = vector<unsigned char> (ptr->keyID.begin(), ptr->keyID.end());

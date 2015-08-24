@@ -6,7 +6,7 @@
 #define TRUTHCOIN_QT_RESOLVEVOTEDIALOG_H
 
 #include <QDialog>
-
+ 
 struct tc_vote;
 class ResolveVoteColTableModel;
 class ResolveVoteGraph;
@@ -18,7 +18,9 @@ QT_BEGIN_NAMESPACE
 class QEvent;
 class QLabel;
 class QLineEdit;
+class QScrollArea;
 class QTableView;
+class QVBoxLayout;
 QT_END_NAMESPACE
 
 class ResolveVoteDialog
@@ -55,6 +57,9 @@ private:
     QTableView *colTableView;
     ResolveVoteColTableModel *colTableModel;
     ResolveVoteGraph *resolveVoteGraph;
+    QVBoxLayout *graphLayout;
+    QScrollArea *graphScrollArea;
+
 
 private slots:
     void onNVotersChange();

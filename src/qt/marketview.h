@@ -24,7 +24,6 @@ class WalletModel;
 QT_BEGIN_NAMESPACE
 class QComboBox;
 class QLineEdit;
-class QModelIndex;
 class QPushButton;
 class QRadioButton;
 QT_END_NAMESPACE

@@ -2,26 +2,20 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "addresstablemodel.h"
-#include "guiconstants.h"
-#include "guiutil.h"
-#include "marketmarkettablemodel.h"
-#include "optionsmodel.h"
-#include "primitives/market.h"
-#include "scicon.h"
-#include "walletmodel.h"
+#include <QList>
 
+#include "guiutil.h"
 #include "main.h"
+#include "marketmarkettablemodel.h"
+#include "primitives/market.h"
 #include "sync.h"
 #include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
-
-#include <QList>
+#include "walletmodel.h"
 
 extern CMarketTreeDB *pmarkettree;
-
 
 
 // Amount column is right-aligned it contains numbers
@@ -36,7 +30,6 @@ static int column_alignments[] = {
         Qt::AlignRight|Qt::AlignVCenter, /* Maturation */
     };
 
-
 // Private implementation
 class MarketMarketTablePriv
 {
@@ -50,7 +43,7 @@ public:
     CWallet *wallet;
     MarketMarketTableModel *parent;
 
-    /* Local cache of Marketes */
+    /* Local cache of Markets */
     QList<const marketMarket *> cached;
 
     int size()
@@ -122,11 +115,11 @@ QVariant MarketMarketTableModel::data(const QModelIndex &index, int role) const
         case Address:
             return formatAddress(market);
         case B:
-            return formatB(market);
+            return QVariant((double)market->B*1e-8);
         case TradingFee:
-            return formatTradingFee(market);
+            return QVariant((double)market->tradingFee*1e-8);
         case MaxCommission:
-            return formatMaxCommission(market);
+            return QVariant((double)market->maxCommission*1e-8);
         case Title:
             return formatTitle(market);
         case Description:
@@ -134,7 +127,7 @@ QVariant MarketMarketTableModel::data(const QModelIndex &index, int role) const
         case Tags:
             return formatTags(market);
         case Maturation:
-            return formatMaturation(market);
+            return QVariant((int)market->maturation);
         case DecisionIDs:
             return formatDecisionIDs(market);
         default:

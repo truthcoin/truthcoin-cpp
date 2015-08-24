@@ -8,6 +8,12 @@
 #include <QDialog>
 #include <QModelIndex>
 
+QT_BEGIN_NAMESPACE
+class QEvent;
+class QLineEdit;
+class QTableView;
+QT_END_NAMESPACE
+
 class marketBranch;
 class marketDecision;
 class marketMarket;
@@ -16,12 +22,6 @@ class MarketTradeTableModel;
 class MarketView;
 class WalletModel;
 
-
-QT_BEGIN_NAMESPACE
-class QEvent;
-class QLineEdit;
-class QTableView;
-QT_END_NAMESPACE
 
 class MarketTradeWindow
     : public QDialog

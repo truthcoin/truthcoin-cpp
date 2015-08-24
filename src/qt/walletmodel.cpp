@@ -7,6 +7,10 @@
 
 #include "addresstablemodel.h"
 #include "guiconstants.h"
+#include "ballotballottablemodel.h"
+#include "ballotoutcometablemodel.h"
+#include "ballotsealedvotetablemodel.h"
+#include "ballotvotetablemodel.h"
 #include "marketbranchtablemodel.h"
 #include "marketdecisiontablemodel.h"
 #include "marketmarkettablemodel.h"
@@ -53,6 +57,11 @@ WalletModel::WalletModel(CWallet *wallet, OptionsModel *optionsModel, QObject *p
     fForceCheckBalanceChanged = false;
 
     addressTableModel = new AddressTableModel(wallet, this);
+    ballotBranchTableModel = new MarketBranchTableModel(wallet, this);
+    ballotBallotTableModel = new BallotBallotTableModel(wallet, this);
+    ballotOutcomeTableModel = new BallotOutcomeTableModel(wallet, this);
+    ballotSealedVoteTableModel = new BallotSealedVoteTableModel(wallet, this);
+    ballotVoteTableModel = new BallotVoteTableModel(wallet, this);
     marketBranchTableModel = new MarketBranchTableModel(wallet, this);
     marketDecisionTableModel = new MarketDecisionTableModel(wallet, this);
     marketMarketTableModel = new MarketMarketTableModel(wallet, this);
@@ -384,6 +393,31 @@ OptionsModel *WalletModel::getOptionsModel()
 AddressTableModel *WalletModel::getAddressTableModel()
 {
     return addressTableModel;
+}
+
+MarketBranchTableModel *WalletModel::getBallotBranchTableModel()
+{
+    return ballotBranchTableModel;
+}
+
+BallotBallotTableModel *WalletModel::getBallotBallotTableModel()
+{
+    return ballotBallotTableModel;
+}
+
+BallotOutcomeTableModel *WalletModel::getBallotOutcomeTableModel()
+{
+    return ballotOutcomeTableModel;
+}
+
+BallotSealedVoteTableModel *WalletModel::getBallotSealedVoteTableModel()
+{
+    return ballotSealedVoteTableModel;
+}
+
+BallotVoteTableModel *WalletModel::getBallotVoteTableModel()
+{
+    return ballotVoteTableModel;
 }
 
 MarketBranchTableModel *WalletModel::getMarketBranchTableModel()

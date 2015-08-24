@@ -2,26 +2,21 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "addresstablemodel.h"
-#include "guiconstants.h"
-#include "guiutil.h"
-#include "marketdecisiontablemodel.h"
-#include "optionsmodel.h"
-#include "primitives/market.h"
-#include "scicon.h"
-#include "walletmodel.h"
+#include <QList>
 
+#include "guiutil.h"
 #include "main.h"
+#include "marketdecisiontablemodel.h"
+#include "primitives/market.h"
 #include "sync.h"
 #include "txdb.h"
 #include "uint256.h"
 #include "util.h"
 #include "wallet.h"
+#include "walletmodel.h"
 
-#include <QList>
 
 extern CMarketTreeDB *pmarkettree;
-
 
 // Amount column is right-aligned it contains numbers
 static int column_alignments[] = {
@@ -33,7 +28,6 @@ static int column_alignments[] = {
         Qt::AlignRight|Qt::AlignVCenter, /* Maximum */
         Qt::AlignRight|Qt::AlignVCenter, /* AnswerOptional */
     };
-
 
 // Private implementation
 class MarketDecisionTablePriv
@@ -48,7 +42,7 @@ public:
     CWallet *wallet;
     MarketDecisionTableModel *parent;
 
-    /* Local cache of Decisiones */
+    /* Local cache of Decisions */
     QList<const marketDecision *> cached;
 
     int size()
@@ -119,13 +113,13 @@ QVariant MarketDecisionTableModel::data(const QModelIndex &index, int role) cons
         case Prompt:
             return formatPrompt(decision);
         case EventOverBy:
-            return formatEventOverBy(decision);
+            return QVariant((int)decision->eventOverBy);
         case IsScaled:
             return formatIsScaled(decision);
         case Minimum:
-            return formatMinimum(decision);
+            return QVariant((double)decision->min*1e-8);
         case Maximum:
-            return formatMaximum(decision);
+            return QVariant((double)decision->max*1e-8);
         default:
             ;
         }

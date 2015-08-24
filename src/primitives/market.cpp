@@ -31,6 +31,9 @@ uint256 marketObj::GetHash(void) const
     if (marketop == 'O')
        ret = SerializeHash(*(marketOutcome *) this);
     else
+    if (marketop == 'S')
+       ret = SerializeHash(*(marketSealedVote *) this);
+    else
     if (marketop == 'T')
        ret = SerializeHash(*(marketTrade *) this);
     else
@@ -53,6 +56,9 @@ CScript marketObj::GetScript(void) const
     else
     if (marketop == 'O')
        ((marketOutcome *) this)->Serialize(ds, nType, nVersion);
+    else
+    if (marketop == 'S')
+       ((marketSealedVote *) this)->Serialize(ds, nType, nVersion);
     else
     if (marketop == 'T')
        ((marketTrade *) this)->Serialize(ds, nType, nVersion);
@@ -96,6 +102,12 @@ marketObj *marketObjCtr(const CScript &script)
     else
     if (*vch0 == 'O') {
         marketOutcome *obj = new marketOutcome;
+        obj->Unserialize(ds, nType, nVersion);
+        return obj;
+    }
+    else
+    if (*vch0 == 'S') {
+        marketSealedVote *obj = new marketSealedVote;
         obj->Unserialize(ds, nType, nVersion);
         return obj;
     }
@@ -403,6 +415,19 @@ int marketOutcome::calc(void)
 
     tc_vote_dtr(vote);
     return 0;
+}
+
+string marketSealedVote::ToString(void) const
+{
+    stringstream str;
+
+    str << "marketop=" << marketop << endl;
+    str << "hHeight=" << nHeight << endl;
+    str << "txid=" << txid.GetHex() << endl;
+    str << "branchid=" << branchid.ToString() << endl;
+    str << "voteid=" << voteid.ToString() << endl;
+
+    return str.str();
 }
 
 string marketVote::ToString(void) const

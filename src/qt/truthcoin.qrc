@@ -29,7 +29,6 @@
         <file alias="history">res/icons/history.png</file>
         <file alias="market">res/icons/market.png</file>
         <file alias="ballot">res/icons/ballot.png</file>
-        <file alias="decisions">res/icons/decisions.png</file>
         <file alias="overview">res/icons/overview.png</file>
         <file alias="resolve">res/icons/resolve.png</file>
         <file alias="export">res/icons/export.png</file>

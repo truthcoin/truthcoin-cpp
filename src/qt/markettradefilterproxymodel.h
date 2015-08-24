@@ -11,7 +11,6 @@
 #include <QString>
 
 
-
 class MarketTradeFilterProxyModel
     : public QSortFilterProxyModel
 {

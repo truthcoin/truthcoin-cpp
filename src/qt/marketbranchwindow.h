@@ -8,16 +8,17 @@
 #include <QDialog>
 #include <QModelIndex>
 
-class MarketBranchFilterProxyModel;
-class MarketBranchTableModel;
-class MarketView;
-class WalletModel;
-
 QT_BEGIN_NAMESPACE
 class QEvent;
 class QLineEdit;
 class QTableView;
 QT_END_NAMESPACE
+
+class MarketBranchFilterProxyModel;
+class MarketBranchTableModel;
+class MarketView;
+class WalletModel;
+
 
 class MarketBranchWindow
     : public QDialog

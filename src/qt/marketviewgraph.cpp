@@ -4,13 +4,14 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "marketviewgraph.h"
 
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPoint>
 #include <QRectF>
 #include <QString>
+
+#include "marketviewgraph.h"
 
 
 static int qpoint_cmp(const void *aptr, const void *bptr)

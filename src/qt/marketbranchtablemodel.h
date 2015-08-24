@@ -13,6 +13,7 @@ class MarketBranchTablePriv;
 class WalletModel;
 class CWallet;
 
+
 class MarketBranchTableModel
     : public QAbstractTableModel
 {

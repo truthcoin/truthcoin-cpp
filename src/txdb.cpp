@@ -295,6 +295,13 @@ bool CMarketTreeDB::WriteMarketIndex(const std::vector<std::pair<uint256, const 
            batch.Write(make_pair(make_pair('o',ptr->branchid),objid), value);
         }
         else
+        if (obj->marketop == 'S') {
+           const marketSealedVote *ptr = (const marketSealedVote *) obj;
+           pair<marketSealedVote,uint256> value = make_pair(*ptr, obj->txid);
+           batch.Write(key, value);
+           batch.Write(make_pair(make_pair(make_pair('s',ptr->branchid),ptr->height),objid), value);
+        }
+        else
         if (obj->marketop == 'T') {
            const marketTrade *ptr = (const marketTrade *) obj;
            pair<marketTrade,uint256> value = make_pair(*ptr, obj->txid);
@@ -441,6 +448,38 @@ CMarketTreeDB::GetOutcome(const uint256 &objid)
                 CDataStream ssValue(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
 
                 marketOutcome *obj = new marketOutcome;
+                ssValue >> *obj;
+                ssValue >> obj->txid;
+                return obj;
+            }
+        } catch (const std::exception& e) {
+            error("%s: %s", __func__, e.what());
+        }
+    }
+    return NULL;
+}
+
+marketSealedVote *
+CMarketTreeDB::GetSealedVote(const uint256 &objid)
+{
+    pair<char,uint256> idx = make_pair('S', objid);
+    ostringstream ss;
+    ::Serialize(ss, idx, SER_DISK, CLIENT_VERSION);
+    boost::scoped_ptr<leveldb::Iterator> pcursor(NewIterator());
+    pcursor->Seek(ss.str());
+    if (pcursor->Valid()) {
+        try {
+            leveldb::Slice slKey = pcursor->key();
+            CDataStream ssKey(slKey.data(), slKey.data()+slKey.size(), SER_DISK, CLIENT_VERSION);
+
+            pair<char,uint256> key;
+            ssKey >> key;
+
+            if (key == idx) {
+                leveldb::Slice slValue = pcursor->value();
+                CDataStream ssValue(slValue.data(), slValue.data()+slValue.size(), SER_DISK, CLIENT_VERSION);
+
+                marketSealedVote *obj = new marketSealedVote;
                 ssValue >> *obj;
                 ssValue >> obj->txid;
                 return obj;

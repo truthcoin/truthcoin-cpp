@@ -161,6 +161,27 @@ void marketNShares(const vector<marketTrade *> &trades, double &nShares0, double
 double marketAccountValue(double B, double nShares0, double nShares1);
 double marketAccountValue(double B, uint32_t nstates);
 
+struct marketSealedVote : public marketObj {
+    uint256 branchid;
+    uint32_t height; /* a multiple of tau */
+    uint256 voteid;
+
+    marketSealedVote(void) : marketObj() { marketop = 'S'; } 
+    virtual ~marketSealedVote(void) { } 
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(marketop);
+        READWRITE(branchid);
+        READWRITE(height);
+        READWRITE(voteid);
+    }
+
+    string ToString(void) const;
+};
+
 struct marketVote : public marketObj {
     uint256 branchid;
     uint32_t height; /* a multiple of tau */

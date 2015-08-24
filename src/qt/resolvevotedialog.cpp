@@ -34,8 +34,6 @@ extern "C" {
 #include <QTabWidget>
 #include <QVBoxLayout>
 
-static QVBoxLayout *v4layout = NULL;
-static QScrollArea *scrollArea = NULL;
 
 ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     : QDialog(parent),
@@ -181,14 +179,14 @@ ResolveVoteDialog::ResolveVoteDialog(QWidget *parent)
     vo1layout->addWidget(tabs);
 
     /* graph tab */
-    v4layout = new QVBoxLayout(graphTab);
+    graphLayout = new QVBoxLayout(graphTab);
     resolveVoteGraph = new ResolveVoteGraph();
     resolveVoteGraph->setVotePtr((const struct tc_vote **)&vote);
-    scrollArea = new QScrollArea();
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    scrollArea->setWidget(resolveVoteGraph);
-    v4layout->addWidget(scrollArea);
+    graphScrollArea = new QScrollArea();
+    graphScrollArea->setWidgetResizable(true);
+    graphScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    graphScrollArea->setWidget(resolveVoteGraph);
+    graphLayout->addWidget(graphScrollArea);
 
     /* data tab */
     QVBoxLayout *vdlayout = new QVBoxLayout(dataTab);
@@ -553,16 +551,16 @@ void ResolveVoteDialog::onInputChange(void)
     colTableModel->onVoteChange(TC_VOTE_NCOLS, vote->nc);
     rowTableModel->onVoteChange(vote->nr, TC_VOTE_NROWS);
 
-    v4layout->removeWidget(scrollArea);
-    delete scrollArea;
+    graphLayout->removeWidget(graphScrollArea);
+    delete graphScrollArea;
 
     resolveVoteGraph = new ResolveVoteGraph();
     resolveVoteGraph->setVotePtr((const struct tc_vote **)&vote);
     resolveVoteGraph->setMinimumHeight(2*20 + 50*vote->nc);
-    scrollArea = new QScrollArea();
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    scrollArea->setWidget(resolveVoteGraph);
-    v4layout->addWidget(scrollArea);
+    graphScrollArea = new QScrollArea();
+    graphScrollArea->setWidgetResizable(true);
+    graphScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    graphScrollArea->setWidget(resolveVoteGraph);
+    graphLayout->addWidget(graphScrollArea);
 }
 
