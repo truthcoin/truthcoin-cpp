@@ -5,7 +5,7 @@ Truthcoin Core integration/staging tree
 
 This is the actual implementation of [the theoretical work here](https://github.com/psztorc/truthcoin).  
 
-Windows users [click here for an easily installable version of Truthcoin](https://github.com/truthcoin/exe).  
+For an immediately useable, binary version of the Truthcoin Core software, visit [the dev page](https://dev.truthcoin.info).
 
 Status: Pre-Alpha. Unless you're a blockchain-elite, you should probably go away (or [stick to reading](http://www.truthcoin.info/papers/)).  
 
@@ -18,8 +18,6 @@ Truthcoin is an ambitious modification of Bitcoin, which extends Bitcoin's abili
 Although substantially more complex, Truthcoin offers correspondingly substantial benefits, having potentially world-changing implications for science, taxation, corporate governance and politics. 
 
 Truthcoin includes two types of value-token.  One, "CashCoin", is used for storing value, buying/selling in markets and paying transaction fees to miners. This coin will resemble Bitcoin-testnet-money (an "Altcoin") for the duration of pre-release testing, and will then be a [sidechain](http://www.blockstream.com/) of Bitcoin. Therefore, the network will "accept" Bitcoin (indeed, this will be the only currency the network accepts). The second (less important) token, "VoteCoin", is used to track a smaller group of special users and reward them for providing reports to the blockchain on the status of the bet-upon events.
-
-For an immediately useable, binary version of the Truthcoin Core software, see [http://www.truthcoin.info/software/](http://www.truthcoin.info/software/).
 
 License
 -------
