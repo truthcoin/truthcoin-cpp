@@ -1,5 +1,12 @@
-Truthcoin Core integration/staging tree
-=====================================
+#### This project is succeeded by [Hivemind](https://github.com/bitcoin-hivemind/hivemind) – Truthcoin implemented as a Bitcoin sidechain – where Bitcoin can be used to participate in a peer-to-peer prediction marketplace.
+
+[bitcoinhivemind.com &rarr;](http://bitcoinhivemind.com/)
+
+[Hivemind on GitHub &rarr;](https://github.com/bitcoin-hivemind/hivemind)
+
+---
+
+## Truthcoin Core integration/staging tree
 
 [![Build Status](https://travis-ci.org/truthcoin/truthcoin.svg?branch=master)](https://travis-ci.org/truthcoin/truthcoin)  
 
